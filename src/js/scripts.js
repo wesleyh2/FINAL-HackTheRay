@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { Water } from 'three/examples/jsm/objects/Water.js';
 import * as dat from 'dat.gui';
 
 // use this to run parcel ./src/index.html  
@@ -37,6 +38,8 @@ const box = new THREE.Mesh(boxGeometry, boxMaterial);
 scene.add(box);
 
 const planeGeometry = new THREE.PlaneGeometry(30, 30, 50, 50);
+const planeDimensions = 30;
+const planeSegments = 50;
 const planeMaterial = new THREE.MeshStandardMaterial({
     color: 0xFFFFFF,
     wireframe: true,
@@ -45,11 +48,25 @@ const planeMaterial = new THREE.MeshStandardMaterial({
 
 
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-scene.add(plane);
+// scene.add(plane);
 plane.rotation.x = -0.5 * Math.PI;
 plane.receiveShadow = true;
 
+water = new Water(
+    planeGeometry,
+    {
+        textureWidth: 512,
+        textureHeight: 512,
+        waterNormals: new THREE.TextureLoader().load('textures/waternormals.jpg', function (texture) {
 
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+        })
+    }
+);
+
+water.rotation.x = -0.5 * Math.PI;
+scene.add(water);
 
 
 
@@ -115,14 +132,16 @@ window.addEventListener('mousemove', function (e) {
 
 const rayCast = new THREE.Raycaster();
 
+const planeID = plane.id;
+
 function animate(time) {
-    box.rotation.x = time / 1000;
-    box.rotation.y = time / 1000;
+    // box.rotation.x = time / 1000;
+    // box.rotation.y = time / 1000;
 
     step += options.speed;
     sphere.position.y = 10 * Math.abs(Math.sin(step))
 
-    if (plane.geometry.attributes.position.array[2] < 10) {
+    if (plane.geometry.attributes.position.array[2] > 10) {
         plane.geometry.attributes.position.array[2] = 0.01 * time;
     }
     plane.geometry.attributes.position.needsUpdate = true;
@@ -130,6 +149,29 @@ function animate(time) {
     rayCast.setFromCamera(mousePos, camera);
     const intersects = rayCast.intersectObjects(scene.children);
     console.log(intersects);
+    intersectIndex = intersects.length - 1;
+    if (intersects.length != 0 && intersects[intersectIndex].object.id === planeID) {
+        for (let j = -9; j < 10; j++) {
+            setTimeout(() => {
+                // for (let i = -j + 1; i < j; i++) {
+                faceNum = planeSegments * planeSegments * 2;
+                faceIn = intersects[intersectIndex].faceIndex + 2;
+                vertIndex = (Math.floor((faceIn / 2) / planeSegments) * (planeSegments + 1) + (faceIn / 2) % planeSegments);
+                plane.geometry.attributes.position.array[(vertIndex + j * (planeSegments + 1)) * 3 - 1] = 1;
+                plane.geometry.attributes.position.array[(vertIndex + j) * 3 - 1] = 1;
+
+                plane.geometry.attributes.position.needsUpdate = true;
+                // }
+            }, 70);
+        }
+    }
+    for (let i = 0; i < plane.geometry.attributes.position.array.length / 3; i++) {
+        if (plane.geometry.attributes.position.array[i * 3 - 1] > 0) {
+            plane.geometry.attributes.position.array[i * 3 - 1] -= 0.01;
+            plane.geometry.attributes.position.needsUpdate = true;
+        }
+    }
+
 
     renderer.render(scene, camera);
 }
