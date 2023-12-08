@@ -2,8 +2,9 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { Water } from 'three/examples/jsm/objects/Water.js';
 import * as dat from 'dat.gui';
+import { generateFractal } from './lsystem.js';
 
-// use this to run parcel ./src/index.html  
+// use this to run parcel: "./src/index.html"
 
 const renderer = new THREE.WebGLRenderer;
 
@@ -27,11 +28,10 @@ const orbit = new OrbitControls(camera, renderer.domElement);
 const axesHelper = new THREE.AxesHelper(5);
 scene.add(axesHelper);
 
-
 camera.position.set(-10, 30, 30);
 orbit.update();
 
-
+/* GEOMETRY */
 const boxGeometry = new THREE.BoxGeometry();
 const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x00FF00 });
 const box = new THREE.Mesh(boxGeometry, boxMaterial);
@@ -45,7 +45,6 @@ const planeMaterial = new THREE.MeshStandardMaterial({
     wireframe: true,
     side: THREE.DoubleSide
 });
-
 
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
 // scene.add(plane);
@@ -82,6 +81,18 @@ sphere.castShadow = true;
 
 sphere.position.set(-10, 10, 0);
 
+//L-system
+const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
+const points = [];
+points.push(new THREE.Vector3(- 10, 0, 0));
+points.push(new THREE.Vector3(0, 10, 0));
+points.push(new THREE.Vector3(10, 0, 0));
+const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+const line = new THREE.Line(lineGeometry, lineMaterial);
+scene.add(line);
+console.log(generateFractal(2));
+
+/* LIGHTING */
 const ambientLight = new THREE.AmbientLight(0x333333);
 scene.add(ambientLight);
 
@@ -106,6 +117,7 @@ directionalLight.shadow.camera.bottom = -12;
 // const sLightHelper = new THREE.SpotLightHelper(spotLight);
 // scene.add(sLightHelper);
 
+/* GUI */
 const gui = new dat.GUI();
 
 const options = {
@@ -172,6 +184,7 @@ function animate(time) {
         }
     }
 
+    // console.log(intersects);
 
     renderer.render(scene, camera);
 }
