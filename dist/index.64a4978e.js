@@ -579,7 +579,8 @@ var _three = require("three");
 var _orbitControlsJs = require("three/examples/jsm/controls/OrbitControls.js");
 var _waterJs = require("three/examples/jsm/objects/Water.js");
 var _datGui = require("dat.gui");
-// use this to run parcel ./src/index.html  
+var _lsystemJs = require("./lsystem.js");
+// use this to run parcel: "/src/index.html"
 const renderer = new _three.WebGLRenderer;
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -591,7 +592,7 @@ const axesHelper = new _three.AxesHelper(5);
 scene.add(axesHelper);
 camera.position.set(-10, 30, 30);
 orbit.update();
-const boxGeometry = new _three.BoxGeometry();
+/* GEOMETRY */ const boxGeometry = new _three.BoxGeometry();
 const boxMaterial = new _three.MeshStandardMaterial({
     color: 0x00FF00
 });
@@ -627,7 +628,19 @@ const sphere = new _three.Mesh(sphereGeometry, sphereMaterial);
 scene.add(sphere);
 sphere.castShadow = true;
 sphere.position.set(-10, 10, 0);
-const ambientLight = new _three.AmbientLight(0x333333);
+//L-system
+const lineMaterial = new _three.LineBasicMaterial({
+    color: 0x0000ff
+});
+const points = [];
+points.push(new _three.Vector3(-10, 0, 0));
+points.push(new _three.Vector3(0, 10, 0));
+points.push(new _three.Vector3(10, 0, 0));
+const lineGeometry = new _three.BufferGeometry().setFromPoints(points);
+const line = new _three.Line(lineGeometry, lineMaterial);
+scene.add(line);
+console.log((0, _lsystemJs.generateFractal)(2));
+/* LIGHTING */ const ambientLight = new _three.AmbientLight(0x333333);
 scene.add(ambientLight);
 const directionalLight = new _three.DirectionalLight(0xFFFFFF, 0.8);
 scene.add(directionalLight);
@@ -645,7 +658,7 @@ directionalLight.shadow.camera.bottom = -12;
 // spotLight.angle = 0.3;
 // const sLightHelper = new THREE.SpotLightHelper(spotLight);
 // scene.add(sLightHelper);
-const gui = new _datGui.GUI();
+/* GUI */ const gui = new _datGui.GUI();
 const options = {
     cubeColor: "#ffea00",
     speed: 0.01
@@ -688,11 +701,12 @@ function animate(time) {
         plane.geometry.attributes.position.array[i * 3 - 1] -= 0.01;
         plane.geometry.attributes.position.needsUpdate = true;
     }
+    // console.log(intersects);
     renderer.render(scene, camera);
 }
 renderer.setAnimationLoop(animate);
 
-},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","dat.gui":"k3xQk","three/examples/jsm/objects/Water.js":"7Js2l"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/objects/Water.js":"7Js2l","dat.gui":"k3xQk","./lsystem.js":"jaj2L"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2023 Three.js Authors
@@ -32304,6 +32318,278 @@ class OrbitControls extends (0, _three.EventDispatcher) {
     }
 }
 
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"7Js2l":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "Water", ()=>Water);
+var _three = require("three");
+/**
+ * Work based on :
+ * https://github.com/Slayvin: Flat mirror for three.js
+ * https://home.adelphi.edu/~stemkoski/ : An implementation of water shader based on the flat mirror
+ * http://29a.ch/ && http://29a.ch/slides/2012/webglwater/ : Water shader explanations in WebGL
+ */ class Water extends (0, _three.Mesh) {
+    constructor(geometry, options = {}){
+        super(geometry);
+        this.isWater = true;
+        const scope = this;
+        const textureWidth = options.textureWidth !== undefined ? options.textureWidth : 512;
+        const textureHeight = options.textureHeight !== undefined ? options.textureHeight : 512;
+        const clipBias = options.clipBias !== undefined ? options.clipBias : 0.0;
+        const alpha = options.alpha !== undefined ? options.alpha : 1.0;
+        const time = options.time !== undefined ? options.time : 0.0;
+        const normalSampler = options.waterNormals !== undefined ? options.waterNormals : null;
+        const sunDirection = options.sunDirection !== undefined ? options.sunDirection : new (0, _three.Vector3)(0.70707, 0.70707, 0.0);
+        const sunColor = new (0, _three.Color)(options.sunColor !== undefined ? options.sunColor : 0xffffff);
+        const waterColor = new (0, _three.Color)(options.waterColor !== undefined ? options.waterColor : 0x7F7F7F);
+        const eye = options.eye !== undefined ? options.eye : new (0, _three.Vector3)(0, 0, 0);
+        const distortionScale = options.distortionScale !== undefined ? options.distortionScale : 20.0;
+        const side = options.side !== undefined ? options.side : (0, _three.FrontSide);
+        const fog = options.fog !== undefined ? options.fog : false;
+        //
+        const mirrorPlane = new (0, _three.Plane)();
+        const normal = new (0, _three.Vector3)();
+        const mirrorWorldPosition = new (0, _three.Vector3)();
+        const cameraWorldPosition = new (0, _three.Vector3)();
+        const rotationMatrix = new (0, _three.Matrix4)();
+        const lookAtPosition = new (0, _three.Vector3)(0, 0, -1);
+        const clipPlane = new (0, _three.Vector4)();
+        const view = new (0, _three.Vector3)();
+        const target = new (0, _three.Vector3)();
+        const q = new (0, _three.Vector4)();
+        const textureMatrix = new (0, _three.Matrix4)();
+        const mirrorCamera = new (0, _three.PerspectiveCamera)();
+        const renderTarget = new (0, _three.WebGLRenderTarget)(textureWidth, textureHeight);
+        const mirrorShader = {
+            name: "MirrorShader",
+            uniforms: (0, _three.UniformsUtils).merge([
+                (0, _three.UniformsLib)["fog"],
+                (0, _three.UniformsLib)["lights"],
+                {
+                    "normalSampler": {
+                        value: null
+                    },
+                    "mirrorSampler": {
+                        value: null
+                    },
+                    "alpha": {
+                        value: 1.0
+                    },
+                    "time": {
+                        value: 0.0
+                    },
+                    "size": {
+                        value: 1.0
+                    },
+                    "distortionScale": {
+                        value: 20.0
+                    },
+                    "textureMatrix": {
+                        value: new (0, _three.Matrix4)()
+                    },
+                    "sunColor": {
+                        value: new (0, _three.Color)(0x7F7F7F)
+                    },
+                    "sunDirection": {
+                        value: new (0, _three.Vector3)(0.70707, 0.70707, 0)
+                    },
+                    "eye": {
+                        value: new (0, _three.Vector3)()
+                    },
+                    "waterColor": {
+                        value: new (0, _three.Color)(0x555555)
+                    }
+                }
+            ]),
+            vertexShader: /* glsl */ `
+				uniform mat4 textureMatrix;
+				uniform float time;
+
+				varying vec4 mirrorCoord;
+				varying vec4 worldPosition;
+
+				#include <common>
+				#include <fog_pars_vertex>
+				#include <shadowmap_pars_vertex>
+				#include <logdepthbuf_pars_vertex>
+
+				void main() {
+					mirrorCoord = modelMatrix * vec4( position, 1.0 );
+					worldPosition = mirrorCoord.xyzw;
+					mirrorCoord = textureMatrix * mirrorCoord;
+					vec4 mvPosition =  modelViewMatrix * vec4( position, 1.0 );
+					gl_Position = projectionMatrix * mvPosition;
+
+				#include <beginnormal_vertex>
+				#include <defaultnormal_vertex>
+				#include <logdepthbuf_vertex>
+				#include <fog_vertex>
+				#include <shadowmap_vertex>
+			}`,
+            fragmentShader: /* glsl */ `
+				uniform sampler2D mirrorSampler;
+				uniform float alpha;
+				uniform float time;
+				uniform float size;
+				uniform float distortionScale;
+				uniform sampler2D normalSampler;
+				uniform vec3 sunColor;
+				uniform vec3 sunDirection;
+				uniform vec3 eye;
+				uniform vec3 waterColor;
+
+				varying vec4 mirrorCoord;
+				varying vec4 worldPosition;
+
+				vec4 getNoise( vec2 uv ) {
+					vec2 uv0 = ( uv / 103.0 ) + vec2(time / 17.0, time / 29.0);
+					vec2 uv1 = uv / 107.0-vec2( time / -19.0, time / 31.0 );
+					vec2 uv2 = uv / vec2( 8907.0, 9803.0 ) + vec2( time / 101.0, time / 97.0 );
+					vec2 uv3 = uv / vec2( 1091.0, 1027.0 ) - vec2( time / 109.0, time / -113.0 );
+					vec4 noise = texture2D( normalSampler, uv0 ) +
+						texture2D( normalSampler, uv1 ) +
+						texture2D( normalSampler, uv2 ) +
+						texture2D( normalSampler, uv3 );
+					return noise * 0.5 - 1.0;
+				}
+
+				void sunLight( const vec3 surfaceNormal, const vec3 eyeDirection, float shiny, float spec, float diffuse, inout vec3 diffuseColor, inout vec3 specularColor ) {
+					vec3 reflection = normalize( reflect( -sunDirection, surfaceNormal ) );
+					float direction = max( 0.0, dot( eyeDirection, reflection ) );
+					specularColor += pow( direction, shiny ) * sunColor * spec;
+					diffuseColor += max( dot( sunDirection, surfaceNormal ), 0.0 ) * sunColor * diffuse;
+				}
+
+				#include <common>
+				#include <packing>
+				#include <bsdfs>
+				#include <fog_pars_fragment>
+				#include <logdepthbuf_pars_fragment>
+				#include <lights_pars_begin>
+				#include <shadowmap_pars_fragment>
+				#include <shadowmask_pars_fragment>
+
+				void main() {
+
+					#include <logdepthbuf_fragment>
+					vec4 noise = getNoise( worldPosition.xz * size );
+					vec3 surfaceNormal = normalize( noise.xzy * vec3( 1.5, 1.0, 1.5 ) );
+
+					vec3 diffuseLight = vec3(0.0);
+					vec3 specularLight = vec3(0.0);
+
+					vec3 worldToEye = eye-worldPosition.xyz;
+					vec3 eyeDirection = normalize( worldToEye );
+					sunLight( surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight );
+
+					float distance = length(worldToEye);
+
+					vec2 distortion = surfaceNormal.xz * ( 0.001 + 1.0 / distance ) * distortionScale;
+					vec3 reflectionSample = vec3( texture2D( mirrorSampler, mirrorCoord.xy / mirrorCoord.w + distortion ) );
+
+					float theta = max( dot( eyeDirection, surfaceNormal ), 0.0 );
+					float rf0 = 0.3;
+					float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
+					vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * waterColor;
+					vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), ( vec3( 0.1 ) + reflectionSample * 0.9 + reflectionSample * specularLight ), reflectance);
+					vec3 outgoingLight = albedo;
+					gl_FragColor = vec4( outgoingLight, alpha );
+
+					#include <tonemapping_fragment>
+					#include <colorspace_fragment>
+					#include <fog_fragment>	
+				}`
+        };
+        const material = new (0, _three.ShaderMaterial)({
+            name: mirrorShader.name,
+            uniforms: (0, _three.UniformsUtils).clone(mirrorShader.uniforms),
+            vertexShader: mirrorShader.vertexShader,
+            fragmentShader: mirrorShader.fragmentShader,
+            lights: true,
+            side: side,
+            fog: fog
+        });
+        material.uniforms["mirrorSampler"].value = renderTarget.texture;
+        material.uniforms["textureMatrix"].value = textureMatrix;
+        material.uniforms["alpha"].value = alpha;
+        material.uniforms["time"].value = time;
+        material.uniforms["normalSampler"].value = normalSampler;
+        material.uniforms["sunColor"].value = sunColor;
+        material.uniforms["waterColor"].value = waterColor;
+        material.uniforms["sunDirection"].value = sunDirection;
+        material.uniforms["distortionScale"].value = distortionScale;
+        material.uniforms["eye"].value = eye;
+        scope.material = material;
+        scope.onBeforeRender = function(renderer, scene, camera) {
+            mirrorWorldPosition.setFromMatrixPosition(scope.matrixWorld);
+            cameraWorldPosition.setFromMatrixPosition(camera.matrixWorld);
+            rotationMatrix.extractRotation(scope.matrixWorld);
+            normal.set(0, 0, 1);
+            normal.applyMatrix4(rotationMatrix);
+            view.subVectors(mirrorWorldPosition, cameraWorldPosition);
+            // Avoid rendering when mirror is facing away
+            if (view.dot(normal) > 0) return;
+            view.reflect(normal).negate();
+            view.add(mirrorWorldPosition);
+            rotationMatrix.extractRotation(camera.matrixWorld);
+            lookAtPosition.set(0, 0, -1);
+            lookAtPosition.applyMatrix4(rotationMatrix);
+            lookAtPosition.add(cameraWorldPosition);
+            target.subVectors(mirrorWorldPosition, lookAtPosition);
+            target.reflect(normal).negate();
+            target.add(mirrorWorldPosition);
+            mirrorCamera.position.copy(view);
+            mirrorCamera.up.set(0, 1, 0);
+            mirrorCamera.up.applyMatrix4(rotationMatrix);
+            mirrorCamera.up.reflect(normal);
+            mirrorCamera.lookAt(target);
+            mirrorCamera.far = camera.far; // Used in WebGLBackground
+            mirrorCamera.updateMatrixWorld();
+            mirrorCamera.projectionMatrix.copy(camera.projectionMatrix);
+            // Update the texture matrix
+            textureMatrix.set(0.5, 0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 1.0);
+            textureMatrix.multiply(mirrorCamera.projectionMatrix);
+            textureMatrix.multiply(mirrorCamera.matrixWorldInverse);
+            // Now update projection matrix with new clip plane, implementing code from: http://www.terathon.com/code/oblique.html
+            // Paper explaining this technique: http://www.terathon.com/lengyel/Lengyel-Oblique.pdf
+            mirrorPlane.setFromNormalAndCoplanarPoint(normal, mirrorWorldPosition);
+            mirrorPlane.applyMatrix4(mirrorCamera.matrixWorldInverse);
+            clipPlane.set(mirrorPlane.normal.x, mirrorPlane.normal.y, mirrorPlane.normal.z, mirrorPlane.constant);
+            const projectionMatrix = mirrorCamera.projectionMatrix;
+            q.x = (Math.sign(clipPlane.x) + projectionMatrix.elements[8]) / projectionMatrix.elements[0];
+            q.y = (Math.sign(clipPlane.y) + projectionMatrix.elements[9]) / projectionMatrix.elements[5];
+            q.z = -1;
+            q.w = (1.0 + projectionMatrix.elements[10]) / projectionMatrix.elements[14];
+            // Calculate the scaled plane vector
+            clipPlane.multiplyScalar(2.0 / clipPlane.dot(q));
+            // Replacing the third row of the projection matrix
+            projectionMatrix.elements[2] = clipPlane.x;
+            projectionMatrix.elements[6] = clipPlane.y;
+            projectionMatrix.elements[10] = clipPlane.z + 1.0 - clipBias;
+            projectionMatrix.elements[14] = clipPlane.w;
+            eye.setFromMatrixPosition(camera.matrixWorld);
+            // Render
+            const currentRenderTarget = renderer.getRenderTarget();
+            const currentXrEnabled = renderer.xr.enabled;
+            const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
+            scope.visible = false;
+            renderer.xr.enabled = false; // Avoid camera modification and recursion
+            renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
+            renderer.setRenderTarget(renderTarget);
+            renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
+            if (renderer.autoClear === false) renderer.clear();
+            renderer.render(scene, mirrorCamera);
+            scope.visible = true;
+            renderer.xr.enabled = currentXrEnabled;
+            renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
+            renderer.setRenderTarget(currentRenderTarget);
+            // Restore viewport
+            const viewport = camera.viewport;
+            if (viewport !== undefined) renderer.state.viewport(viewport);
+        };
+    }
+}
+
 },{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"k3xQk":[function(require,module,exports) {
 /**
  * dat-gui JavaScript Controller Library
@@ -34595,278 +34881,26 @@ var index = {
 };
 exports.default = index;
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"7Js2l":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"jaj2L":[function(require,module,exports) {
+//generate the word
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
-parcelHelpers.export(exports, "Water", ()=>Water);
-var _three = require("three");
-/**
- * Work based on :
- * https://github.com/Slayvin: Flat mirror for three.js
- * https://home.adelphi.edu/~stemkoski/ : An implementation of water shader based on the flat mirror
- * http://29a.ch/ && http://29a.ch/slides/2012/webglwater/ : Water shader explanations in WebGL
- */ class Water extends (0, _three.Mesh) {
-    constructor(geometry, options = {}){
-        super(geometry);
-        this.isWater = true;
-        const scope = this;
-        const textureWidth = options.textureWidth !== undefined ? options.textureWidth : 512;
-        const textureHeight = options.textureHeight !== undefined ? options.textureHeight : 512;
-        const clipBias = options.clipBias !== undefined ? options.clipBias : 0.0;
-        const alpha = options.alpha !== undefined ? options.alpha : 1.0;
-        const time = options.time !== undefined ? options.time : 0.0;
-        const normalSampler = options.waterNormals !== undefined ? options.waterNormals : null;
-        const sunDirection = options.sunDirection !== undefined ? options.sunDirection : new (0, _three.Vector3)(0.70707, 0.70707, 0.0);
-        const sunColor = new (0, _three.Color)(options.sunColor !== undefined ? options.sunColor : 0xffffff);
-        const waterColor = new (0, _three.Color)(options.waterColor !== undefined ? options.waterColor : 0x7F7F7F);
-        const eye = options.eye !== undefined ? options.eye : new (0, _three.Vector3)(0, 0, 0);
-        const distortionScale = options.distortionScale !== undefined ? options.distortionScale : 20.0;
-        const side = options.side !== undefined ? options.side : (0, _three.FrontSide);
-        const fog = options.fog !== undefined ? options.fog : false;
-        //
-        const mirrorPlane = new (0, _three.Plane)();
-        const normal = new (0, _three.Vector3)();
-        const mirrorWorldPosition = new (0, _three.Vector3)();
-        const cameraWorldPosition = new (0, _three.Vector3)();
-        const rotationMatrix = new (0, _three.Matrix4)();
-        const lookAtPosition = new (0, _three.Vector3)(0, 0, -1);
-        const clipPlane = new (0, _three.Vector4)();
-        const view = new (0, _three.Vector3)();
-        const target = new (0, _three.Vector3)();
-        const q = new (0, _three.Vector4)();
-        const textureMatrix = new (0, _three.Matrix4)();
-        const mirrorCamera = new (0, _three.PerspectiveCamera)();
-        const renderTarget = new (0, _three.WebGLRenderTarget)(textureWidth, textureHeight);
-        const mirrorShader = {
-            name: "MirrorShader",
-            uniforms: (0, _three.UniformsUtils).merge([
-                (0, _three.UniformsLib)["fog"],
-                (0, _three.UniformsLib)["lights"],
-                {
-                    "normalSampler": {
-                        value: null
-                    },
-                    "mirrorSampler": {
-                        value: null
-                    },
-                    "alpha": {
-                        value: 1.0
-                    },
-                    "time": {
-                        value: 0.0
-                    },
-                    "size": {
-                        value: 1.0
-                    },
-                    "distortionScale": {
-                        value: 20.0
-                    },
-                    "textureMatrix": {
-                        value: new (0, _three.Matrix4)()
-                    },
-                    "sunColor": {
-                        value: new (0, _three.Color)(0x7F7F7F)
-                    },
-                    "sunDirection": {
-                        value: new (0, _three.Vector3)(0.70707, 0.70707, 0)
-                    },
-                    "eye": {
-                        value: new (0, _three.Vector3)()
-                    },
-                    "waterColor": {
-                        value: new (0, _three.Color)(0x555555)
-                    }
-                }
-            ]),
-            vertexShader: /* glsl */ `
-				uniform mat4 textureMatrix;
-				uniform float time;
-
-				varying vec4 mirrorCoord;
-				varying vec4 worldPosition;
-
-				#include <common>
-				#include <fog_pars_vertex>
-				#include <shadowmap_pars_vertex>
-				#include <logdepthbuf_pars_vertex>
-
-				void main() {
-					mirrorCoord = modelMatrix * vec4( position, 1.0 );
-					worldPosition = mirrorCoord.xyzw;
-					mirrorCoord = textureMatrix * mirrorCoord;
-					vec4 mvPosition =  modelViewMatrix * vec4( position, 1.0 );
-					gl_Position = projectionMatrix * mvPosition;
-
-				#include <beginnormal_vertex>
-				#include <defaultnormal_vertex>
-				#include <logdepthbuf_vertex>
-				#include <fog_vertex>
-				#include <shadowmap_vertex>
-			}`,
-            fragmentShader: /* glsl */ `
-				uniform sampler2D mirrorSampler;
-				uniform float alpha;
-				uniform float time;
-				uniform float size;
-				uniform float distortionScale;
-				uniform sampler2D normalSampler;
-				uniform vec3 sunColor;
-				uniform vec3 sunDirection;
-				uniform vec3 eye;
-				uniform vec3 waterColor;
-
-				varying vec4 mirrorCoord;
-				varying vec4 worldPosition;
-
-				vec4 getNoise( vec2 uv ) {
-					vec2 uv0 = ( uv / 103.0 ) + vec2(time / 17.0, time / 29.0);
-					vec2 uv1 = uv / 107.0-vec2( time / -19.0, time / 31.0 );
-					vec2 uv2 = uv / vec2( 8907.0, 9803.0 ) + vec2( time / 101.0, time / 97.0 );
-					vec2 uv3 = uv / vec2( 1091.0, 1027.0 ) - vec2( time / 109.0, time / -113.0 );
-					vec4 noise = texture2D( normalSampler, uv0 ) +
-						texture2D( normalSampler, uv1 ) +
-						texture2D( normalSampler, uv2 ) +
-						texture2D( normalSampler, uv3 );
-					return noise * 0.5 - 1.0;
-				}
-
-				void sunLight( const vec3 surfaceNormal, const vec3 eyeDirection, float shiny, float spec, float diffuse, inout vec3 diffuseColor, inout vec3 specularColor ) {
-					vec3 reflection = normalize( reflect( -sunDirection, surfaceNormal ) );
-					float direction = max( 0.0, dot( eyeDirection, reflection ) );
-					specularColor += pow( direction, shiny ) * sunColor * spec;
-					diffuseColor += max( dot( sunDirection, surfaceNormal ), 0.0 ) * sunColor * diffuse;
-				}
-
-				#include <common>
-				#include <packing>
-				#include <bsdfs>
-				#include <fog_pars_fragment>
-				#include <logdepthbuf_pars_fragment>
-				#include <lights_pars_begin>
-				#include <shadowmap_pars_fragment>
-				#include <shadowmask_pars_fragment>
-
-				void main() {
-
-					#include <logdepthbuf_fragment>
-					vec4 noise = getNoise( worldPosition.xz * size );
-					vec3 surfaceNormal = normalize( noise.xzy * vec3( 1.5, 1.0, 1.5 ) );
-
-					vec3 diffuseLight = vec3(0.0);
-					vec3 specularLight = vec3(0.0);
-
-					vec3 worldToEye = eye-worldPosition.xyz;
-					vec3 eyeDirection = normalize( worldToEye );
-					sunLight( surfaceNormal, eyeDirection, 100.0, 2.0, 0.5, diffuseLight, specularLight );
-
-					float distance = length(worldToEye);
-
-					vec2 distortion = surfaceNormal.xz * ( 0.001 + 1.0 / distance ) * distortionScale;
-					vec3 reflectionSample = vec3( texture2D( mirrorSampler, mirrorCoord.xy / mirrorCoord.w + distortion ) );
-
-					float theta = max( dot( eyeDirection, surfaceNormal ), 0.0 );
-					float rf0 = 0.3;
-					float reflectance = rf0 + ( 1.0 - rf0 ) * pow( ( 1.0 - theta ), 5.0 );
-					vec3 scatter = max( 0.0, dot( surfaceNormal, eyeDirection ) ) * waterColor;
-					vec3 albedo = mix( ( sunColor * diffuseLight * 0.3 + scatter ) * getShadowMask(), ( vec3( 0.1 ) + reflectionSample * 0.9 + reflectionSample * specularLight ), reflectance);
-					vec3 outgoingLight = albedo;
-					gl_FragColor = vec4( outgoingLight, alpha );
-
-					#include <tonemapping_fragment>
-					#include <colorspace_fragment>
-					#include <fog_fragment>	
-				}`
-        };
-        const material = new (0, _three.ShaderMaterial)({
-            name: mirrorShader.name,
-            uniforms: (0, _three.UniformsUtils).clone(mirrorShader.uniforms),
-            vertexShader: mirrorShader.vertexShader,
-            fragmentShader: mirrorShader.fragmentShader,
-            lights: true,
-            side: side,
-            fog: fog
-        });
-        material.uniforms["mirrorSampler"].value = renderTarget.texture;
-        material.uniforms["textureMatrix"].value = textureMatrix;
-        material.uniforms["alpha"].value = alpha;
-        material.uniforms["time"].value = time;
-        material.uniforms["normalSampler"].value = normalSampler;
-        material.uniforms["sunColor"].value = sunColor;
-        material.uniforms["waterColor"].value = waterColor;
-        material.uniforms["sunDirection"].value = sunDirection;
-        material.uniforms["distortionScale"].value = distortionScale;
-        material.uniforms["eye"].value = eye;
-        scope.material = material;
-        scope.onBeforeRender = function(renderer, scene, camera) {
-            mirrorWorldPosition.setFromMatrixPosition(scope.matrixWorld);
-            cameraWorldPosition.setFromMatrixPosition(camera.matrixWorld);
-            rotationMatrix.extractRotation(scope.matrixWorld);
-            normal.set(0, 0, 1);
-            normal.applyMatrix4(rotationMatrix);
-            view.subVectors(mirrorWorldPosition, cameraWorldPosition);
-            // Avoid rendering when mirror is facing away
-            if (view.dot(normal) > 0) return;
-            view.reflect(normal).negate();
-            view.add(mirrorWorldPosition);
-            rotationMatrix.extractRotation(camera.matrixWorld);
-            lookAtPosition.set(0, 0, -1);
-            lookAtPosition.applyMatrix4(rotationMatrix);
-            lookAtPosition.add(cameraWorldPosition);
-            target.subVectors(mirrorWorldPosition, lookAtPosition);
-            target.reflect(normal).negate();
-            target.add(mirrorWorldPosition);
-            mirrorCamera.position.copy(view);
-            mirrorCamera.up.set(0, 1, 0);
-            mirrorCamera.up.applyMatrix4(rotationMatrix);
-            mirrorCamera.up.reflect(normal);
-            mirrorCamera.lookAt(target);
-            mirrorCamera.far = camera.far; // Used in WebGLBackground
-            mirrorCamera.updateMatrixWorld();
-            mirrorCamera.projectionMatrix.copy(camera.projectionMatrix);
-            // Update the texture matrix
-            textureMatrix.set(0.5, 0.0, 0.0, 0.5, 0.0, 0.5, 0.0, 0.5, 0.0, 0.0, 0.5, 0.5, 0.0, 0.0, 0.0, 1.0);
-            textureMatrix.multiply(mirrorCamera.projectionMatrix);
-            textureMatrix.multiply(mirrorCamera.matrixWorldInverse);
-            // Now update projection matrix with new clip plane, implementing code from: http://www.terathon.com/code/oblique.html
-            // Paper explaining this technique: http://www.terathon.com/lengyel/Lengyel-Oblique.pdf
-            mirrorPlane.setFromNormalAndCoplanarPoint(normal, mirrorWorldPosition);
-            mirrorPlane.applyMatrix4(mirrorCamera.matrixWorldInverse);
-            clipPlane.set(mirrorPlane.normal.x, mirrorPlane.normal.y, mirrorPlane.normal.z, mirrorPlane.constant);
-            const projectionMatrix = mirrorCamera.projectionMatrix;
-            q.x = (Math.sign(clipPlane.x) + projectionMatrix.elements[8]) / projectionMatrix.elements[0];
-            q.y = (Math.sign(clipPlane.y) + projectionMatrix.elements[9]) / projectionMatrix.elements[5];
-            q.z = -1;
-            q.w = (1.0 + projectionMatrix.elements[10]) / projectionMatrix.elements[14];
-            // Calculate the scaled plane vector
-            clipPlane.multiplyScalar(2.0 / clipPlane.dot(q));
-            // Replacing the third row of the projection matrix
-            projectionMatrix.elements[2] = clipPlane.x;
-            projectionMatrix.elements[6] = clipPlane.y;
-            projectionMatrix.elements[10] = clipPlane.z + 1.0 - clipBias;
-            projectionMatrix.elements[14] = clipPlane.w;
-            eye.setFromMatrixPosition(camera.matrixWorld);
-            // Render
-            const currentRenderTarget = renderer.getRenderTarget();
-            const currentXrEnabled = renderer.xr.enabled;
-            const currentShadowAutoUpdate = renderer.shadowMap.autoUpdate;
-            scope.visible = false;
-            renderer.xr.enabled = false; // Avoid camera modification and recursion
-            renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
-            renderer.setRenderTarget(renderTarget);
-            renderer.state.buffers.depth.setMask(true); // make sure the depth buffer is writable so it can be properly cleared, see #18897
-            if (renderer.autoClear === false) renderer.clear();
-            renderer.render(scene, mirrorCamera);
-            scope.visible = true;
-            renderer.xr.enabled = currentXrEnabled;
-            renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
-            renderer.setRenderTarget(currentRenderTarget);
-            // Restore viewport
-            const viewport = camera.viewport;
-            if (viewport !== undefined) renderer.state.viewport(viewport);
-        };
+parcelHelpers.export(exports, "generateFractal", ()=>generateFractal);
+function generateFractal(iterations) {
+    let oldWord = "X";
+    let newWord = "";
+    for(let iteration = 0; iteration < iterations; iteration++){
+        for(let i = 0; i < oldWord.length; i++){
+            if (oldWord[i] === "X") newWord += "F+[[X]-X]-F[-FX]+X";
+            else if (oldWord[i] === "F") newWord += "FF";
+            else newWord += oldWord[i];
+        }
+        oldWord = newWord;
+        newWord = "";
     }
+    return oldWord;
 }
 
-},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["ciGIJ","goJYj"], "goJYj", "parcelRequire94c2")
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["ciGIJ","goJYj"], "goJYj", "parcelRequire94c2")
 
 //# sourceMappingURL=index.64a4978e.js.map
