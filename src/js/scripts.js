@@ -6,6 +6,8 @@ import { generateFractal } from './lsystem.js';
 
 // use this to run parcel: "./src/index.html"
 
+const { Vector3, Geometry, Line, LineBasicMaterial } = THREE;
+
 const renderer = new THREE.WebGLRenderer;
 
 renderer.shadowMap.enabled = true;
@@ -82,15 +84,15 @@ sphere.castShadow = true;
 sphere.position.set(-10, 10, 0);
 
 //L-system
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
-const points = [];
-points.push(new THREE.Vector3(- 10, 0, 0));
-points.push(new THREE.Vector3(0, 10, 0));
-points.push(new THREE.Vector3(10, 0, 0));
-const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
-const line = new THREE.Line(lineGeometry, lineMaterial);
-scene.add(line);
-console.log(generateFractal(2));
+// const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
+// const points = [];
+// points.push(new THREE.Vector3(-10, 0, 0));
+// points.push(new THREE.Vector3(0, 10, 0));
+// points.push(new THREE.Vector3(10, 0, 0));
+// const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+// const line = new THREE.Line(lineGeometry, lineMaterial);
+// scene.add(line);
+// console.log(generateFractal(2));
 
 /* LIGHTING */
 const ambientLight = new THREE.AmbientLight(0x333333);
@@ -160,7 +162,7 @@ function animate(time) {
 
     rayCast.setFromCamera(mousePos, camera);
     const intersects = rayCast.intersectObjects(scene.children);
-    console.log(intersects);
+    // console.log(intersects);
     intersectIndex = intersects.length - 1;
     if (intersects.length != 0 && intersects[intersectIndex].object.id === planeID) {
         for (let j = -9; j < 10; j++) {
@@ -185,8 +187,83 @@ function animate(time) {
     }
 
     // console.log(intersects);
-
     renderer.render(scene, camera);
 }
+
+// let currentPosition = new Vector3(0, 0, 0);
+
+let stack = [];
+const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+
+/* Test drawing fractal */
+drawFractal(5, new Vector3(0, 0, 0));
+drawFractal(5, new Vector3(-40, 0, 0));
+
+function drawFractal(n, startingPos) {
+    let currentDirection = new Vector3(0, 1, 0);
+    currentPosition = startingPos;
+    const word = generateFractal(n);
+    console.log(word);
+    for(let i = 0; i < word.length; i++) {
+        const currentSymbol = word[i];
+
+        switch(currentSymbol) {
+            case "F": //draw forward
+                drawForward(currentDirection);
+                break;
+            case "+": //turn left
+                turn(currentDirection, -1);
+                break;
+            case "-": //turn right
+                turn(currentDirection, 1);
+                break;
+            case "[": 
+                //save current position and direction to stack
+                stack.push({ position: currentPosition.clone(), direction: currentDirection.clone() });
+                break;
+            case "]":
+                 //pop from the stack and reset position and direction
+                const poppedValues = stack.pop();
+                console.log(poppedValues);
+                if (poppedValues) {
+                    currentPosition.copy(poppedValues.position);
+                    currentDirection.copy(poppedValues.direction);
+                }
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+function drawForward(currentDirection) {
+    const newPos = currentPosition.clone().add(currentDirection);
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints([currentPosition, newPos]);
+    const line = new Line(lineGeometry, lineMaterial);
+    scene.add(line);
+    currentPosition = newPos;
+}
+
+function turn(currentDirection, direction) {
+    // const angleChangeX = (Math.floor(getRandom() * 20 + 15)) * Math.PI / 180 * direction;
+    // const angleChangeY = (Math.floor(getRandom() * 20 + 15)) * Math.PI / 180 * direction;
+    // const angleChangeZ = (Math.floor(getRandom() * 20 + 15)) * Math.PI / 180 * direction;
+    const angleChangeX = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+    const angleChangeY = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+    const angleChangeZ = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+    currentDirection.applyAxisAngle(new Vector3(1, 0, 0), angleChangeX);
+    currentDirection.applyAxisAngle(new Vector3(0, 1, 0), angleChangeY);
+    currentDirection.applyAxisAngle(new Vector3(0, 0, 1), angleChangeZ);
+}
+
+// Generate a pseudorandom number between 0 and 1
+function getRandom() {
+    // Use the seed value or current time if no seed is set
+    Math.seed = new Date().getTime();
+    
+    // The following is a simple linear congruential generator (LCG) algorithm
+    Math.seed = (Math.seed * 9301 + 49297) % 233280;
+    return Math.seed / 233280;
+  }
 
 renderer.setAnimationLoop(animate);
