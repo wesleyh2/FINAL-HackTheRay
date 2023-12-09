@@ -223,11 +223,11 @@ function drawFractal(n, startingPos) {
                 break;
             case "]":
                  //pop from the stack and reset position and direction
-                const poppedValues = stack.pop();
+                const poppedData = stack.pop();
                 console.log(poppedValues);
                 if (poppedValues) {
-                    currentPosition.copy(poppedValues.position);
-                    currentDirection.copy(poppedValues.direction);
+                    currentPosition.copy(poppedData.position);
+                    currentDirection.copy(poppedData.direction);
                 }
                 break;
             default:
@@ -245,9 +245,6 @@ function drawForward(currentDirection) {
 }
 
 function turn(currentDirection, direction) {
-    // const angleChangeX = (Math.floor(getRandom() * 20 + 15)) * Math.PI / 180 * direction;
-    // const angleChangeY = (Math.floor(getRandom() * 20 + 15)) * Math.PI / 180 * direction;
-    // const angleChangeZ = (Math.floor(getRandom() * 20 + 15)) * Math.PI / 180 * direction;
     const angleChangeX = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
     const angleChangeY = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
     const angleChangeZ = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
@@ -255,15 +252,5 @@ function turn(currentDirection, direction) {
     currentDirection.applyAxisAngle(new Vector3(0, 1, 0), angleChangeY);
     currentDirection.applyAxisAngle(new Vector3(0, 0, 1), angleChangeZ);
 }
-
-// Generate a pseudorandom number between 0 and 1
-function getRandom() {
-    // Use the seed value or current time if no seed is set
-    Math.seed = new Date().getTime();
-    
-    // The following is a simple linear congruential generator (LCG) algorithm
-    Math.seed = (Math.seed * 9301 + 49297) % 233280;
-    return Math.seed / 233280;
-  }
 
 renderer.setAnimationLoop(animate);
