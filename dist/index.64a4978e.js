@@ -580,7 +580,8 @@ var _orbitControlsJs = require("three/examples/jsm/controls/OrbitControls.js");
 var _waterJs = require("three/examples/jsm/objects/Water.js");
 var _datGui = require("dat.gui");
 var _lsystemJs = require("./lsystem.js");
-// use this to run parcel: "/src/index.html"
+// use this to run "parcel src/index.html"
+const { Vector3, Geometry, Line, LineBasicMaterial } = _three;
 const renderer = new _three.WebGLRenderer;
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -603,22 +604,13 @@ const planeDimensions = 30;
 const planeSegments = 50;
 const planeMaterial = new _three.MeshStandardMaterial({
     color: 0xFFFFFF,
-    wireframe: true,
+    wireframe: false,
     side: _three.DoubleSide
 });
 const plane = new _three.Mesh(planeGeometry, planeMaterial);
-// scene.add(plane);
+scene.add(plane);
 plane.rotation.x = -0.5 * Math.PI;
 plane.receiveShadow = true;
-water = new (0, _waterJs.Water)(planeGeometry, {
-    textureWidth: 512,
-    textureHeight: 512,
-    waterNormals: new _three.TextureLoader().load("textures/waternormals.jpg", function(texture) {
-        texture.wrapS = texture.wrapT = _three.RepeatWrapping;
-    })
-});
-water.rotation.x = -0.5 * Math.PI;
-scene.add(water);
 const sphereGeometry = new _three.SphereGeometry(4, 50, 50);
 const sphereMaterial = new _three.MeshStandardMaterial({
     color: 0x0000FF,
@@ -629,17 +621,15 @@ scene.add(sphere);
 sphere.castShadow = true;
 sphere.position.set(-10, 10, 0);
 //L-system
-const lineMaterial = new _three.LineBasicMaterial({
-    color: 0x0000ff
-});
-const points = [];
-points.push(new _three.Vector3(-10, 0, 0));
-points.push(new _three.Vector3(0, 10, 0));
-points.push(new _three.Vector3(10, 0, 0));
-const lineGeometry = new _three.BufferGeometry().setFromPoints(points);
-const line = new _three.Line(lineGeometry, lineMaterial);
-scene.add(line);
-console.log((0, _lsystemJs.generateFractal)(2));
+// const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
+// const points = [];
+// points.push(new THREE.Vector3(-10, 0, 0));
+// points.push(new THREE.Vector3(0, 10, 0));
+// points.push(new THREE.Vector3(10, 0, 0));
+// const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+// const line = new THREE.Line(lineGeometry, lineMaterial);
+// scene.add(line);
+// console.log(generateFractal(2));
 /* LIGHTING */ const ambientLight = new _three.AmbientLight(0x333333);
 scene.add(ambientLight);
 const directionalLight = new _three.DirectionalLight(0xFFFFFF, 0.8);
@@ -685,7 +675,7 @@ function animate(time) {
     plane.geometry.attributes.position.needsUpdate = true;
     rayCast.setFromCamera(mousePos, camera);
     const intersects = rayCast.intersectObjects(scene.children);
-    console.log(intersects);
+    // console.log(intersects);
     intersectIndex = intersects.length - 1;
     if (intersects.length != 0 && intersects[intersectIndex].object.id === planeID) for(let j = -9; j < 10; j++)setTimeout(()=>{
         // for (let i = -j + 1; i < j; i++) {
@@ -704,6 +694,62 @@ function animate(time) {
     // console.log(intersects);
     renderer.render(scene, camera);
 }
+// let currentPosition = new Vector3(0, 0, 0);
+// let stack = [];
+// const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+// /* Test drawing fractal */
+// drawFractal(5, new Vector3(0, 0, 0));
+// drawFractal(5, new Vector3(-40, 0, 0));
+// function drawFractal(n, startingPos) {
+//     let currentDirection = new Vector3(0, 1, 0);
+//     currentPosition = startingPos;
+//     const word = generateFractal(n);
+//     console.log(word);
+//     for (let i = 0; i < word.length; i++) {
+//         const currentSymbol = word[i];
+//         switch (currentSymbol) {
+//             case "F": //draw forward
+//                 drawForward(currentDirection);
+//                 break;
+//             case "+": //turn left
+//                 turn(currentDirection, -1);
+//                 break;
+//             case "-": //turn right
+//                 turn(currentDirection, 1);
+//                 break;
+//             case "[":
+//                 //save current position and direction to stack
+//                 stack.push({ position: currentPosition.clone(), direction: currentDirection.clone() });
+//                 break;
+//             case "]":
+//                 //pop from the stack and reset position and direction
+//                 const poppedData = stack.pop();
+//                 console.log(poppedValues);
+//                 if (poppedValues) {
+//                     currentPosition.copy(poppedData.position);
+//                     currentDirection.copy(poppedData.direction);
+//                 }
+//                 break;
+//             default:
+//                 break;
+//         }
+//     }
+// }
+// function drawForward(currentDirection) {
+//     const newPos = currentPosition.clone().add(currentDirection);
+//     const lineGeometry = new THREE.BufferGeometry().setFromPoints([currentPosition, newPos]);
+//     const line = new Line(lineGeometry, lineMaterial);
+//     scene.add(line);
+//     currentPosition = newPos;
+// }
+// function turn(currentDirection, direction) {
+//     const angleChangeX = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+//     const angleChangeY = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+//     const angleChangeZ = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+//     currentDirection.applyAxisAngle(new Vector3(1, 0, 0), angleChangeX);
+//     currentDirection.applyAxisAngle(new Vector3(0, 1, 0), angleChangeY);
+//     currentDirection.applyAxisAngle(new Vector3(0, 0, 1), angleChangeZ);
+// }
 renderer.setAnimationLoop(animate);
 
 },{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/objects/Water.js":"7Js2l","dat.gui":"k3xQk","./lsystem.js":"jaj2L"}],"ktPTu":[function(require,module,exports) {

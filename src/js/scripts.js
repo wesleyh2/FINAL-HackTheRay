@@ -4,7 +4,7 @@ import { Water } from 'three/examples/jsm/objects/Water.js';
 import * as dat from 'dat.gui';
 import { generateFractal } from './lsystem.js';
 
-// use this to run parcel: "/src/index.html"
+// use this to run "parcel src/index.html"
 
 const { Vector3, Geometry, Line, LineBasicMaterial } = THREE;
 
@@ -44,31 +44,14 @@ const planeDimensions = 30;
 const planeSegments = 50;
 const planeMaterial = new THREE.MeshStandardMaterial({
     color: 0xFFFFFF,
-    wireframe: true,
+    wireframe: false,
     side: THREE.DoubleSide
 });
 
 const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-// scene.add(plane);
+scene.add(plane);
 plane.rotation.x = -0.5 * Math.PI;
 plane.receiveShadow = true;
-
-water = new Water(
-    planeGeometry,
-    {
-        textureWidth: 512,
-        textureHeight: 512,
-        waterNormals: new THREE.TextureLoader().load('textures/waternormals.jpg', function (texture) {
-
-            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-
-        })
-    }
-);
-
-water.rotation.x = -0.5 * Math.PI;
-scene.add(water);
-
 
 
 const sphereGeometry = new THREE.SphereGeometry(4, 50, 50);
@@ -82,6 +65,8 @@ scene.add(sphere);
 sphere.castShadow = true;
 
 sphere.position.set(-10, 10, 0);
+
+
 
 //L-system
 // const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
@@ -192,65 +177,65 @@ function animate(time) {
 
 // let currentPosition = new Vector3(0, 0, 0);
 
-let stack = [];
-const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
+// let stack = [];
+// const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
 
-/* Test drawing fractal */
-drawFractal(5, new Vector3(0, 0, 0));
-drawFractal(5, new Vector3(-40, 0, 0));
+// /* Test drawing fractal */
+// drawFractal(5, new Vector3(0, 0, 0));
+// drawFractal(5, new Vector3(-40, 0, 0));
 
-function drawFractal(n, startingPos) {
-    let currentDirection = new Vector3(0, 1, 0);
-    currentPosition = startingPos;
-    const word = generateFractal(n);
-    console.log(word);
-    for(let i = 0; i < word.length; i++) {
-        const currentSymbol = word[i];
+// function drawFractal(n, startingPos) {
+//     let currentDirection = new Vector3(0, 1, 0);
+//     currentPosition = startingPos;
+//     const word = generateFractal(n);
+//     console.log(word);
+//     for (let i = 0; i < word.length; i++) {
+//         const currentSymbol = word[i];
 
-        switch(currentSymbol) {
-            case "F": //draw forward
-                drawForward(currentDirection);
-                break;
-            case "+": //turn left
-                turn(currentDirection, -1);
-                break;
-            case "-": //turn right
-                turn(currentDirection, 1);
-                break;
-            case "[": 
-                //save current position and direction to stack
-                stack.push({ position: currentPosition.clone(), direction: currentDirection.clone() });
-                break;
-            case "]":
-                 //pop from the stack and reset position and direction
-                const poppedData = stack.pop();
-                console.log(poppedValues);
-                if (poppedValues) {
-                    currentPosition.copy(poppedData.position);
-                    currentDirection.copy(poppedData.direction);
-                }
-                break;
-            default:
-                break;
-        }
-    }
-}
+//         switch (currentSymbol) {
+//             case "F": //draw forward
+//                 drawForward(currentDirection);
+//                 break;
+//             case "+": //turn left
+//                 turn(currentDirection, -1);
+//                 break;
+//             case "-": //turn right
+//                 turn(currentDirection, 1);
+//                 break;
+//             case "[":
+//                 //save current position and direction to stack
+//                 stack.push({ position: currentPosition.clone(), direction: currentDirection.clone() });
+//                 break;
+//             case "]":
+//                 //pop from the stack and reset position and direction
+//                 const poppedData = stack.pop();
+//                 console.log(poppedValues);
+//                 if (poppedValues) {
+//                     currentPosition.copy(poppedData.position);
+//                     currentDirection.copy(poppedData.direction);
+//                 }
+//                 break;
+//             default:
+//                 break;
+//         }
+//     }
+// }
 
-function drawForward(currentDirection) {
-    const newPos = currentPosition.clone().add(currentDirection);
-    const lineGeometry = new THREE.BufferGeometry().setFromPoints([currentPosition, newPos]);
-    const line = new Line(lineGeometry, lineMaterial);
-    scene.add(line);
-    currentPosition = newPos;
-}
+// function drawForward(currentDirection) {
+//     const newPos = currentPosition.clone().add(currentDirection);
+//     const lineGeometry = new THREE.BufferGeometry().setFromPoints([currentPosition, newPos]);
+//     const line = new Line(lineGeometry, lineMaterial);
+//     scene.add(line);
+//     currentPosition = newPos;
+// }
 
-function turn(currentDirection, direction) {
-    const angleChangeX = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
-    const angleChangeY = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
-    const angleChangeZ = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
-    currentDirection.applyAxisAngle(new Vector3(1, 0, 0), angleChangeX);
-    currentDirection.applyAxisAngle(new Vector3(0, 1, 0), angleChangeY);
-    currentDirection.applyAxisAngle(new Vector3(0, 0, 1), angleChangeZ);
-}
+// function turn(currentDirection, direction) {
+//     const angleChangeX = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+//     const angleChangeY = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+//     const angleChangeZ = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
+//     currentDirection.applyAxisAngle(new Vector3(1, 0, 0), angleChangeX);
+//     currentDirection.applyAxisAngle(new Vector3(0, 1, 0), angleChangeY);
+//     currentDirection.applyAxisAngle(new Vector3(0, 0, 1), angleChangeZ);
+// }
 
 renderer.setAnimationLoop(animate);
