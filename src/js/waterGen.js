@@ -49,11 +49,6 @@ const tLoader = new THREE.TextureLoader();
 
 const planeGeometry = new THREE.PlaneGeometry(30, 30, 50, 50);
 const planeSegments = 50;
-const planeMaterial = new THREE.MeshStandardMaterial({
-    color: 0xFFFFFF,
-    wireframe: false,
-    side: THREE.DoubleSide
-});
 
 const water = new Water(planeGeometry,
     {
@@ -72,12 +67,92 @@ const water = new Water(planeGeometry,
 
 water.rotation.x = -Math.PI / 2;
 scene.add(water);
-
-const waterUniforms = water.material.uniforms;
 water.receiveShadow = true;
-water.castShadow = true;
+
+const water2 = new Water(planeGeometry,
+    {
+        textureWidth: 512,
+        textureHeight: 512,
+        waterNormals: tLoader.load('https://threejs.org/examples/textures/waternormals.jpg', function (texture) {
+
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+        }),
+        sunDirection: new THREE.Vector3(),
+        waterColor: 0x001e0f
+    });
+
+water2.rotation.x = -Math.PI / 2;
 
 
+water2.scale.x = 0.5;
+water2.scale.y = 0.5;
+
+water2.position.x = 20;
+
+
+scene.add(water2);
+water2.receiveShadow = true;
+
+const point1 = new THREE.Vector3(0, 4, 0);
+const point2 = new THREE.Vector3(15, 0, 3);
+
+const inputPoints = [point1, point2, 4];
+
+function createWater(input) {
+    const distance = Math.abs(input[0].distanceTo(input[1]));
+    const center = input[1].sub(input[0]).multiplyScalar(0.5).add(input[0]);
+    console.log(center);
+
+    const myPlaneGeometry = new THREE.PlaneGeometry(distance, input[2], 50, 50);
+
+
+    const myWater = new Water(myPlaneGeometry,
+        {
+            textureWidth: 512,
+            textureHeight: 512,
+            waterNormals: tLoader.load('https://threejs.org/examples/textures/waternormals.jpg', function (texture) {
+
+                texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+            }),
+            sunDirection: new THREE.Vector3(),
+            waterColor: 0x001e0f,
+
+        });
+
+    const a1 = point1.y - point2.y;
+    const b1 = point1.x - point2.x;
+    const yAngle = -Math.asin(a1 / b1);
+
+    let a2 = point2.z - point1.z;
+    let b2 = point2.x - point1.x;
+    if (!(isFinite(a2 / b2))) {
+        b2 = 1;
+        a2 = 0;
+    }
+    const zAngle = -Math.atan(a2 / b2);
+    console.log(Math.atan(5));
+
+    myWater.rotation.x = -Math.PI / 2;
+    myWater.rotation.y = yAngle;
+    myWater.rotation.z = zAngle;
+
+
+    myWater.position.x = center.x;
+    myWater.position.y = center.y;
+    myWater.position.z = center.z;
+
+    scene.add(myWater);
+    myWater.receiveShadow = true;
+
+    return (myWater.material.uniforms);
+
+}
+
+
+
+waterUniformList = [createWater(inputPoints), water.material.uniforms, water2.material.uniforms];
 
 // // skybox
 
@@ -134,6 +209,31 @@ sphere.castShadow = true;
 
 sphere.position.set(-10, 10, 0);
 
+const sphereGeometry1 = new THREE.SphereGeometry(1, 50, 50);
+const sphereMaterial1 = new THREE.MeshStandardMaterial({
+    color: 0x0000FF,
+    wireframe: false
+});
+
+const sphere1 = new THREE.Mesh(sphereGeometry1, sphereMaterial1);
+scene.add(sphere1);
+sphere1.castShadow = true;
+
+sphere1.position.set(0, 4, 0);
+
+const sphereGeometry2 = new THREE.SphereGeometry(1, 50, 50);
+const sphereMaterial2 = new THREE.MeshStandardMaterial({
+    color: 0x0000FF,
+    wireframe: false
+});
+
+const sphere2 = new THREE.Mesh(sphereGeometry2, sphereMaterial2);
+scene.add(sphere2);
+sphere2.castShadow = true;
+
+sphere2.position.set(15, 0, 3);
+
+
 
 // /* LIGHTING */
 // // const ambientLight = new THREE.AmbientLight(0x333333);
@@ -145,80 +245,68 @@ directionalLight.position.set(-30, 50, 0);
 directionalLight.castShadow = true;
 directionalLight.shadow.camera.bottom = -12;
 
-// // const dLightHelper = new THREE.DirectionalLightHelper(directionalLight);
-// // scene.add(dLightHelper);
-
-// // const dLightShadowHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
-// // scene.add(dLightShadowHelper);
-
-// // const spotLight = new THREE.SpotLight(0xFFFFFF, 1000);
-// // scene.add(spotLight);
-// // spotLight.position.set(-30, 30, 0);
-// // spotLight.castShadow = true;
-// // spotLight.angle = 0.3;
-
-// // const sLightHelper = new THREE.SpotLightHelper(spotLight);
-// // scene.add(sLightHelper);
-
 // /* GUI */
-// const gui = new dat.GUI();
+const gui = new dat.GUI();
 
 const options = {
     waterColor: '#ffea90',
     speed: 0.01
 };
 
-// gui.addColor(options, 'waterColor').onChange(function (e) {
-//     boxMaterial.color.set(e);
-//     sphereMaterial.color.set(e);
-// });
+gui.addColor(options, 'waterColor').onChange(function (e) {
+    water.waterColor = e;
+    sphereMaterial.color.set(e);
+});
 
-// gui.add(options, 'speed', 0, 0.02);
+gui.add(options, 'speed', 0, 0.02);
 
 let step = 0;
 
 // // Ray casting
 
-// // const mousePos = new THREE.Vector2();
+const mousePos = new THREE.Vector2();
 
-// // window.addEventListener('mousemove', function (e) {
-// //     mousePos.x = (e.clientX / window.innerWidth) * 2 - 1;
-// //     mousePos.y = - (e.clientY / this.window.innerHeight) * 2 + 1;
-// // });
+window.addEventListener('mousemove', function (e) {
+    mousePos.x = (e.clientX / window.innerWidth) * 2 - 1;
+    mousePos.y = - (e.clientY / this.window.innerHeight) * 2 + 1;
+});
 
-// const rayCast = new THREE.Raycaster();
+const rayCast = new THREE.Raycaster();
 
 const waterID = water.id;
+
+function raisedWater() {
+    rayCast.setFromCamera(mousePos, camera);
+    const intersects = rayCast.intersectObjects(scene.children);
+    if (intersects.length != 0 && intersects[0].object.id === waterID) {
+        for (let j = -3; j < 4; j++) {
+            faceNum = planeSegments * planeSegments * 2;
+            faceIn = intersects[0].faceIndex + 2;
+            vertIndex = (Math.floor((faceIn / 2) / planeSegments) * (planeSegments + 1) + (faceIn / 2) % planeSegments);
+            water.geometry.attributes.position.array[(vertIndex + j * (planeSegments + 1)) * 3 - 1] = 1;
+            water.geometry.attributes.position.array[(vertIndex + j) * 3 - 1] = 1;
+            water.geometry.attributes.position.needsUpdate = true;
+
+        }
+    }
+    for (let i = 0; i < water.geometry.attributes.position.array.length / 3; i++) {
+        if (water.geometry.attributes.position.array[i * 3 - 1] > 0) {
+            water.geometry.attributes.position.array[i * 3 - 1] -= 0.01;
+            water.geometry.attributes.position.needsUpdate = true;
+        }
+    }
+}
 
 function animate(time) {
 
     step += options.speed;
-    water.material.uniforms['time'].value += 1.0 / 60.0;
+
+    waterUniformList.forEach((x) => x['time'].value += 1.0 / 60.0);
+
+    raisedWater();
 
 
-    //     // rayCast.setFromCamera(mousePos, camera);
-    //     // const intersects = rayCast.intersectObjects(scene.children);
-    //     // console.log(intersects);
 
-    //     // if (intersects.length != 0 && intersects[0].object.id === waterID) {
-    //     //     for (let j = -3; j < 4; j++) {
-    //     //         faceNum = planeSegments * planeSegments * 2;
-    //     //         faceIn = intersects[0].faceIndex + 2;
-    //     //         vertIndex = (Math.floor((faceIn / 2) / planeSegments) * (planeSegments + 1) + (faceIn / 2) % planeSegments);
-    //     //         water.geometry.attributes.position.array[(vertIndex + j * (planeSegments + 1)) * 3 - 1] = 1;
-    //     //         water.geometry.attributes.position.array[(vertIndex + j) * 3 - 1] = 1;
-    //     //         water.geometry.attributes.position.needsUpdate = true;
-
-    //     //     }
-    //     // }
-    //     // for (let i = 0; i < water.geometry.attributes.position.array.length / 3; i++) {
-    //     //     if (water.geometry.attributes.position.array[i * 3 - 1] > 0) {
-    //     //         water.geometry.attributes.position.array[i * 3 - 1] -= 0.01;
-    //     //         water.geometry.attributes.position.needsUpdate = true;
-    //     //     }
-    //     // }
-
-    //     // console.log(intersects);
 
     renderer.render(scene, camera);
 }
