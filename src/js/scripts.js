@@ -262,6 +262,9 @@ function drawForward() {
     cyl.position.copy(currentPosition.clone().add(direction.multiplyScalar(0.5)));
     //set rotation
     cyl.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize());
+    if(depth > 1) { //only add leaves to upper branches
+        addLeaves(cyl, 3);
+    }
     scene.add(cyl);
     currentPosition = newPos;
 }
@@ -286,8 +289,34 @@ function turnAround() {
     currentDirection.normalize();
 }
 
-function getRandomAngle() {
-    return (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180;
+function addLeaves(cylinder, numLeaves) {
+    const leafSize = 0.1; 
+    const increment = 1 / numLeaves;
+    
+    const leafGeometry = new THREE.ConeGeometry(leafSize, leafSize * 2, 8);
+    const leafMaterial = new THREE.MeshStandardMaterial({ 
+        color: '#21913f', 
+    });
+    const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+
+    // Position the leaf on the cylinder
+    const x = cylinder.geometry.parameters.radiusTop;
+    leaf.position.set(x, 0, 0);
+    
+    // Orient the leaf
+    const leafNormal = new THREE.Vector3(x, 0, 0).normalize();
+    const leafQuaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), leafNormal);
+    leaf.setRotationFromQuaternion(leafQuaternion);
+    const directionVector = new THREE.Vector3(0, 1, 0);
+    const leafDirection = directionVector.applyQuaternion(leafQuaternion);
+
+    // Iterate through rest of leaves
+    cylinder.add(leaf);
+    for (let i = 1; i < numLeaves; i++) {
+        const curLeaf = new THREE.Mesh(leafGeometry, leafMaterial);
+        curLeaf.position.addScaledVector(leafDirection, i * increment);
+        cylinder.add(curLeaf);
+    }
 }
 
 renderer.setAnimationLoop(animate);
