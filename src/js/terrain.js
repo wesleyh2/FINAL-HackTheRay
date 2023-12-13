@@ -81,16 +81,8 @@ updateSun();
 
 /* GEOMETRY */
 //water
-const planeGeometry = new THREE.PlaneGeometry(500, 500, 50, 50);
+const planeGeometry = new THREE.PlaneGeometry(30, 30, 50, 50);
 const planeSegments = 50;
-const planeMaterial = new THREE.MeshStandardMaterial({
-    color: 0xFFFFFF,
-    wireframe: false,
-    side: THREE.DoubleSide
-});
-
-
-
 
 const water = new Water(planeGeometry,
     {
@@ -108,14 +100,9 @@ const water = new Water(planeGeometry,
         })
     });
 
-
-
 water.rotation.x = -Math.PI / 2;
 scene.add(water);
-
-const waterUniforms = water.material.uniforms;
 water.receiveShadow = true;
-water.castShadow = true;
 //terrain
 var terrain_width = 200;
 var terrain_height = 200;
