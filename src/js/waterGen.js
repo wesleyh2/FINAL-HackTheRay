@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { Water } from '../classes/Water.js';
+import { Water } from '../classes/myWater.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 
 import { Reflector } from 'three/examples/jsm/objects/Reflector.js';
@@ -59,10 +59,11 @@ const water = new Water(planeGeometry,
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
         }),
-        sunDirection: new THREE.Vector3(),
-        sunColor: 0xffffff,
-        waterColor: 0x001e0f,
-        distortionScale: 3.7,
+        waterDisp: tLoader.load('https://threejs.org/examples/textures/water.jpg', function (texture) {
+
+            texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+
+        })
     });
 
 water.rotation.x = -Math.PI / 2;
@@ -73,7 +74,7 @@ const water2 = new Water(planeGeometry,
     {
         textureWidth: 512,
         textureHeight: 512,
-        waterNormals: tLoader.load('https://threejs.org/examples/textures/waternormals.jpg', function (texture) {
+        waterNormals: tLoader.load('https://ibb.co/YDFz5df', function (texture) {
 
             texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
 
@@ -301,7 +302,7 @@ function animate(time) {
 
     step += options.speed;
 
-    waterUniformList.forEach((x) => x['time'].value += 1.0 / 60.0);
+    waterUniformList.forEach((x) => x['time'].value += 1.0 / 90.0);
 
     raisedWater();
 

@@ -593,12 +593,10 @@ const axesHelper = new _three.AxesHelper(5);
 scene.add(axesHelper);
 camera.position.set(-10, 30, 30);
 orbit.update();
-/* GEOMETRY */ const boxGeometry = new _three.BoxGeometry();
-const boxMaterial = new _three.MeshStandardMaterial({
-    color: 0x00FF00
-});
-const box = new _three.Mesh(boxGeometry, boxMaterial);
-scene.add(box);
+/* GEOMETRY */ // const boxGeometry = new THREE.BoxGeometry();
+// const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x00FF00 });
+// const box = new THREE.Mesh(boxGeometry, boxMaterial);
+// scene.add(box);
 const planeGeometry = new _three.PlaneGeometry(30, 30, 50, 50);
 const planeDimensions = 30;
 const planeSegments = 50;
@@ -620,16 +618,6 @@ const sphere = new _three.Mesh(sphereGeometry, sphereMaterial);
 scene.add(sphere);
 sphere.castShadow = true;
 sphere.position.set(-10, 10, 0);
-//L-system
-// const lineMaterial = new THREE.LineBasicMaterial({ color: 0x0000ff });
-// const points = [];
-// points.push(new THREE.Vector3(-10, 0, 0));
-// points.push(new THREE.Vector3(0, 10, 0));
-// points.push(new THREE.Vector3(10, 0, 0));
-// const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
-// const line = new THREE.Line(lineGeometry, lineMaterial);
-// scene.add(line);
-// console.log(generateFractal(2));
 /* LIGHTING */ const ambientLight = new _three.AmbientLight(0x333333);
 scene.add(ambientLight);
 const directionalLight = new _three.DirectionalLight(0xFFFFFF, 0.8);
@@ -669,87 +657,171 @@ const planeID = plane.id;
 function animate(time) {
     // box.rotation.x = time / 1000;
     // box.rotation.y = time / 1000;
-    step += options.speed;
-    sphere.position.y = 10 * Math.abs(Math.sin(step));
-    if (plane.geometry.attributes.position.array[2] > 10) plane.geometry.attributes.position.array[2] = 0.01 * time;
-    plane.geometry.attributes.position.needsUpdate = true;
-    rayCast.setFromCamera(mousePos, camera);
-    const intersects = rayCast.intersectObjects(scene.children);
-    // console.log(intersects);
-    intersectIndex = intersects.length - 1;
-    if (intersects.length != 0 && intersects[intersectIndex].object.id === planeID) for(let j = -9; j < 10; j++)setTimeout(()=>{
-        // for (let i = -j + 1; i < j; i++) {
-        faceNum = planeSegments * planeSegments * 2;
-        faceIn = intersects[intersectIndex].faceIndex + 2;
-        vertIndex = Math.floor(faceIn / 2 / planeSegments) * (planeSegments + 1) + faceIn / 2 % planeSegments;
-        plane.geometry.attributes.position.array[(vertIndex + j * (planeSegments + 1)) * 3 - 1] = 1;
-        plane.geometry.attributes.position.array[(vertIndex + j) * 3 - 1] = 1;
-        plane.geometry.attributes.position.needsUpdate = true;
+    // step += options.speed;
+    // sphere.position.y = 10 * Math.abs(Math.sin(step))
+    // if (plane.geometry.attributes.position.array[2] > 10) {
+    //     plane.geometry.attributes.position.array[2] = 0.01 * time;
     // }
-    }, 70);
-    for(let i = 0; i < plane.geometry.attributes.position.array.length / 3; i++)if (plane.geometry.attributes.position.array[i * 3 - 1] > 0) {
-        plane.geometry.attributes.position.array[i * 3 - 1] -= 0.01;
-        plane.geometry.attributes.position.needsUpdate = true;
-    }
+    // plane.geometry.attributes.position.needsUpdate = true;
+    // rayCast.setFromCamera(mousePos, camera);
+    // const intersects = rayCast.intersectObjects(scene.children);
+    // // console.log(intersects);
+    // intersectIndex = intersects.length - 1;
+    // if (intersects.length != 0 && intersects[intersectIndex].object.id === planeID) {
+    //     for (let j = -9; j < 10; j++) {
+    //         setTimeout(() => {
+    //             // for (let i = -j + 1; i < j; i++) {
+    //             faceNum = planeSegments * planeSegments * 2;
+    //             faceIn = intersects[intersectIndex].faceIndex + 2;
+    //             vertIndex = (Math.floor((faceIn / 2) / planeSegments) * (planeSegments + 1) + (faceIn / 2) % planeSegments);
+    //             plane.geometry.attributes.position.array[(vertIndex + j * (planeSegments + 1)) * 3 - 1] = 1;
+    //             plane.geometry.attributes.position.array[(vertIndex + j) * 3 - 1] = 1;
+    //             plane.geometry.attributes.position.needsUpdate = true;
+    //             // }
+    //         }, 70);
+    //     }
+    // }
+    // for (let i = 0; i < plane.geometry.attributes.position.array.length / 3; i++) {
+    //     if (plane.geometry.attributes.position.array[i * 3 - 1] > 0) {
+    //         plane.geometry.attributes.position.array[i * 3 - 1] -= 0.01;
+    //         plane.geometry.attributes.position.needsUpdate = true;
+    //     }
+    // }
     // console.log(intersects);
     renderer.render(scene, camera);
 }
-// let currentPosition = new Vector3(0, 0, 0);
-// let stack = [];
-// const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff });
-// /* Test drawing fractal */
-// drawFractal(5, new Vector3(0, 0, 0));
-// drawFractal(5, new Vector3(-40, 0, 0));
-// function drawFractal(n, startingPos) {
-//     let currentDirection = new Vector3(0, 1, 0);
-//     currentPosition = startingPos;
-//     const word = generateFractal(n);
-//     console.log(word);
-//     for (let i = 0; i < word.length; i++) {
-//         const currentSymbol = word[i];
-//         switch (currentSymbol) {
-//             case "F": //draw forward
-//                 drawForward(currentDirection);
-//                 break;
-//             case "+": //turn left
-//                 turn(currentDirection, -1);
-//                 break;
-//             case "-": //turn right
-//                 turn(currentDirection, 1);
-//                 break;
-//             case "[":
-//                 //save current position and direction to stack
-//                 stack.push({ position: currentPosition.clone(), direction: currentDirection.clone() });
-//                 break;
-//             case "]":
-//                 //pop from the stack and reset position and direction
-//                 const poppedData = stack.pop();
-//                 console.log(poppedValues);
-//                 if (poppedValues) {
-//                     currentPosition.copy(poppedData.position);
-//                     currentDirection.copy(poppedData.direction);
-//                 }
-//                 break;
-//             default:
-//                 break;
-//         }
-//     }
-// }
-// function drawForward(currentDirection) {
-//     const newPos = currentPosition.clone().add(currentDirection);
-//     const lineGeometry = new THREE.BufferGeometry().setFromPoints([currentPosition, newPos]);
-//     const line = new Line(lineGeometry, lineMaterial);
-//     scene.add(line);
-//     currentPosition = newPos;
-// }
-// function turn(currentDirection, direction) {
-//     const angleChangeX = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
-//     const angleChangeY = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
-//     const angleChangeZ = (Math.floor(Math.random() * 20 + 15)) * Math.PI / 180 * direction;
-//     currentDirection.applyAxisAngle(new Vector3(1, 0, 0), angleChangeX);
-//     currentDirection.applyAxisAngle(new Vector3(0, 1, 0), angleChangeY);
-//     currentDirection.applyAxisAngle(new Vector3(0, 0, 1), angleChangeZ);
-// }
+/* L SYSTEM */ //initializations for L-system
+let currentPosition;
+let currentDirection = new Vector3(0, 1, 0);
+let stack = [];
+//TEXTURING
+const barkMaterial = new _three.MeshStandardMaterial({
+    color: "#a5633c"
+});
+const maxWidth = 0.1;
+const minWidth = 0.01;
+const decayFactor = 0.8;
+//turning
+const pitchAxis = new Vector3(1, 0, 0);
+const rollAxis = new Vector3(0, 0, 1);
+const turnAxis = new Vector3(0, 1, 0);
+const angle = 10;
+drawFractal(3, new Vector3(0, 5, 0));
+function drawFractal(n, startingPos) {
+    let depth = 0;
+    currentPosition = startingPos;
+    const word = (0, _lsystemJs.generateComplex)(n);
+    for(let i = 0; i < word.length; i++){
+        const currentSymbol = word[i];
+        switch(currentSymbol){
+            case "F":
+            case "Y":
+                drawForward();
+                break;
+            case "+":
+                turn(-1);
+                break;
+            case "-":
+                turn(1);
+                break;
+            case "&":
+                pitch(1);
+                break;
+            case "^":
+                pitch(-1);
+                break;
+            case "\\":
+                roll(1);
+                break;
+            case "/":
+                roll(-1);
+                break;
+            case "|":
+                turnAround(currentDirection);
+                break;
+            case "[":
+                //save current position and direction to stack
+                depth += 1;
+                stack.push({
+                    position: currentPosition.clone(),
+                    direction: currentDirection.clone(),
+                    depth: depth
+                });
+                break;
+            case "]":
+                //pop from the stack and reset position and direction
+                const data = stack.pop();
+                if (data) {
+                    currentPosition.copy(data.position);
+                    currentDirection.copy(data.direction);
+                    depth = data.depth;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+}
+function drawForward() {
+    let depth = 0;
+    if (stack.length > 0) depth = stack[stack.length - 1].depth;
+    else depth = 0;
+    const newPos = currentPosition.clone().add(currentDirection);
+    const direction = new Vector3().subVectors(newPos, currentPosition);
+    const distance = direction.length();
+    //generate cylinder
+    const thickness = Math.max(minWidth, maxWidth * Math.pow(decayFactor, depth));
+    const cylGeometry = new _three.CylinderGeometry(thickness, thickness, distance, 16);
+    const cyl = new _three.Mesh(cylGeometry, barkMaterial);
+    //center cylinder at halfway point
+    cyl.position.copy(currentPosition.clone().add(direction.multiplyScalar(0.5)));
+    //set rotation
+    cyl.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize());
+    if (depth > 1) addLeaves(cyl, 3);
+    scene.add(cyl);
+    currentPosition = newPos;
+}
+function turn(direction) {
+    currentDirection.applyAxisAngle(turnAxis, direction * angle * Math.PI / 180);
+    currentDirection.normalize();
+}
+function pitch(direction) {
+    currentDirection.applyAxisAngle(pitchAxis, direction * angle * Math.PI / 180);
+    currentDirection.normalize();
+}
+function roll(direction) {
+    currentDirection.applyAxisAngle(rollAxis, direction * angle * Math.PI / 180);
+    currentDirection.normalize();
+}
+function turnAround() {
+    currentDirection.applyAxisAngle(turnAxis, Math.PI);
+    currentDirection.normalize();
+}
+function addLeaves(cylinder, numLeaves) {
+    const leafSize = 0.1;
+    const increment = 1 / numLeaves;
+    const leafGeometry = new _three.ConeGeometry(leafSize, leafSize * 2, 8);
+    const leafMaterial = new _three.MeshStandardMaterial({
+        color: "#21913f"
+    });
+    const leaf = new _three.Mesh(leafGeometry, leafMaterial);
+    // Position the leaf on the cylinder
+    const x = cylinder.geometry.parameters.radiusTop;
+    leaf.position.set(x, 0, 0);
+    // Orient the leaf
+    const leafNormal = new _three.Vector3(x, 0, 0).normalize();
+    const leafQuaternion = new _three.Quaternion().setFromUnitVectors(new _three.Vector3(0, 0, 1), leafNormal);
+    leaf.setRotationFromQuaternion(leafQuaternion);
+    const directionVector = new _three.Vector3(0, 1, 0);
+    const leafDirection = directionVector.applyQuaternion(leafQuaternion);
+    // Iterate through rest of leaves
+    cylinder.add(leaf);
+    for(let i = 1; i < numLeaves; i++){
+        const curLeaf = new _three.Mesh(leafGeometry, leafMaterial);
+        curLeaf.position.addScaledVector(leafDirection, i * increment);
+        cylinder.add(curLeaf);
+    }
+}
 renderer.setAnimationLoop(animate);
 
 },{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/objects/Water.js":"7Js2l","dat.gui":"k3xQk","./lsystem.js":"jaj2L"}],"ktPTu":[function(require,module,exports) {
@@ -34932,6 +35004,7 @@ exports.default = index;
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "generateFractal", ()=>generateFractal);
+parcelHelpers.export(exports, "generateComplex", ()=>generateComplex);
 function generateFractal(iterations) {
     let oldWord = "X";
     let newWord = "";
@@ -34940,6 +35013,41 @@ function generateFractal(iterations) {
             if (oldWord[i] === "X") newWord += "F+[[X]-X]-F[-FX]+X";
             else if (oldWord[i] === "F") newWord += "FF";
             else newWord += oldWord[i];
+        }
+        oldWord = newWord;
+        newWord = "";
+    }
+    return oldWord;
+}
+function generateComplex(iterations) {
+    let oldWord = "F";
+    let newWord = "";
+    for(let iteration = 0; iteration < iterations; iteration++){
+        for(let i = 0; i < oldWord.length; i++)switch(oldWord[i]){
+            case "F":
+                newWord += "Y[^^^^^OF][&&&&&PF][\\\\\\\\\\F][++++++MF][/////-----NF]";
+                break;
+            case "M":
+                newWord += "Z-M ";
+                break;
+            case "N":
+                newWord += "Z+N";
+                break;
+            case "O":
+                newWord += "Z&O";
+                break;
+            case "P":
+                newWord += "Z^P";
+                break;
+            case "Y":
+                newWord += "Z-ZY+";
+                break;
+            case "Z":
+                newWord += "ZZ";
+                break;
+            default:
+                newWord += oldWord[i];
+                break;
         }
         oldWord = newWord;
         newWord = "";
