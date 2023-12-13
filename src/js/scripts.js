@@ -149,12 +149,8 @@ let currentPosition;
 let currentDirection = new Vector3(0, 1, 0);
 let stack = [];
 
-//TEXTURING
-const textureLoader = new THREE.TextureLoader();
-// const barkTexture = textureLoader.load('https://ibb.co/YDFz5df')
 const barkMaterial = new THREE.MeshStandardMaterial({
     color: '#a5633c',
-    //map: barkTexture
 })
 
 const maxWidth = 0.1;
@@ -166,16 +162,19 @@ const rollAxis = new Vector3(0, 0, 1);
 const turnAxis = new Vector3(0, 1, 0);
 const angle = 10;
 
-drawTree(4, new Vector3(0, 0, 0));
-// drawTree(3, new Vector3(5, 0, 0))
+function randomIntFromInterval(min, max) { 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+}
+const words = [generateComplex(2), generateComplex(3), generateComplex(4)];
 
-function drawTree(n, startingPos) {
+drawTree(new Vector3(0, 0, 0));
+
+function drawTree(startingPos) {
     const treeGroup = new THREE.Group();
     scene.add(treeGroup);
     let depth = 0;
     currentPosition = new Vector3(0, 0, 0);
-
-    const word = generateComplex(n);
+    const word = words[randomIntFromInterval(0, 2)];
     for (let i = 0; i < word.length; i++) {
         const currentSymbol = word[i];
 
@@ -228,10 +227,10 @@ function drawTree(n, startingPos) {
                 break;
         }
     }
-    // const randomRotation = Math.random() * Math.PI * 2; 
-    // treeGroup.rotation.y = randomRotation;
+    const randomRotation = Math.random() * Math.PI * 2; 
+    treeGroup.rotation.y = randomRotation;
 
-    // treeGroup.position.copy(startingPos);
+    treeGroup.position.copy(startingPos);
 }
 
 function drawForward(treeGroup) {
