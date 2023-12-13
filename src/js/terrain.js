@@ -102,10 +102,16 @@ water.rotation.x = -Math.PI / 2;
 scene.add(water);
 water.receiveShadow = true;
 //terrain
+const texture = new THREE.TextureLoader().load( "https://threejs.org/examples/textures/terrain/grasslight-big.jpg" );
+texture.wrapS = THREE.RepeatWrapping;
+texture.wrapT = THREE.RepeatWrapping;
+texture.repeat.set( 4, 4 );
+
 var terrain_width = 200;
 var terrain_height = 200;
 var geometry = new THREE.PlaneGeometry(500, 500, terrain_width - 1, terrain_height - 1);
 var material = new THREE.MeshLambertMaterial({ color: 0x3c3951 });
+material.map = texture;
 var terrain = new THREE.Mesh(geometry, material);
 terrain.rotation.x = -Math.PI / 2;
 scene.add(terrain);
@@ -283,11 +289,11 @@ terrain.geometry.computeVertexNormals();
 const ambientLight = new THREE.AmbientLight(0x333333);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.8);
+const directionalLight = new THREE.DirectionalLight(0xFFFFFF, 10);
 scene.add(directionalLight);
-directionalLight.position.set(-30, 50, 0);
+
 directionalLight.castShadow = true;
-directionalLight.shadow.camera.bottom = -12;
+//directionalLight.shadow.camera.bottom = -12;
 
 
 /* GUI */
