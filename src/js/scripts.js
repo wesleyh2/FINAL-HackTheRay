@@ -3,35 +3,52 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { Water } from 'three/examples/jsm/objects/Water.js';
 import * as dat from 'dat.gui';
 import { generateFractal, generateComplex } from './lsystem.js';
+import { FlyControls } from 'three/examples/jsm/controls/FlyControls'
 
 // use this to run "parcel src/index.html"
 
 const { Vector3, Geometry, Line, LineBasicMaterial } = THREE;
 
+//SET UP SCENE
 const renderer = new THREE.WebGLRenderer;
-
 renderer.shadowMap.enabled = true;
-
 renderer.setSize(window.innerWidth, window.innerHeight);
-
 document.body.appendChild(renderer.domElement);
-
 const scene = new THREE.Scene();
-
 const camera = new THREE.PerspectiveCamera(
     45,
     window.innerWidth / window.innerHeight,
     0.1,
     1000
 );
+const initialLook = new Vector3(0, 2.5, 0);
+camera.position.set(0, 4, 9);
+camera.lookAt(initialLook);
 
+//Set up OrbitControls
 const orbit = new OrbitControls(camera, renderer.domElement);
-
-const axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
-
-camera.position.set(-10, 30, 30);
+orbit.target.copy(initialLook);
 orbit.update();
+
+//Set up FlyControls
+fly = new FlyControls( camera, renderer.domElement );
+fly.movementSpeed = 100;
+fly.autoForward = false;
+fly.dragToLook = true;
+
+let isOrbitControlsActive = true;
+
+// Toggle flying and orbiting
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'c') {
+        isOrbitControlsActive = !isOrbitControlsActive;
+        // Enable or disable controls based on the mode
+        orbit.enabled = isOrbitControlsActive;
+        fly.enabled = !isOrbitControlsActive;
+    }
+});
+
+renderer.setAnimationLoop(animate);
 
 /* GEOMETRY */
 // const boxGeometry = new THREE.BoxGeometry();
@@ -54,17 +71,17 @@ plane.rotation.x = -0.5 * Math.PI;
 plane.receiveShadow = true;
 
 
-const sphereGeometry = new THREE.SphereGeometry(4, 50, 50);
-const sphereMaterial = new THREE.MeshStandardMaterial({
-    color: 0x0000FF,
-    wireframe: false
-});
+// const sphereGeometry = new THREE.SphereGeometry(4, 50, 50);
+// const sphereMaterial = new THREE.MeshStandardMaterial({
+//     color: 0x0000FF,
+//     wireframe: false
+// });
 
-const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
-scene.add(sphere);
-sphere.castShadow = true;
+// const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+// scene.add(sphere);
+// sphere.castShadow = true;
 
-sphere.position.set(-10, 10, 0);
+// sphere.position.set(-10, 10, 0);
 
 /* LIGHTING */
 const ambientLight = new THREE.AmbientLight(0x333333);
@@ -92,20 +109,20 @@ directionalLight.shadow.camera.bottom = -12;
 // scene.add(sLightHelper);
 
 /* GUI */
-const gui = new dat.GUI();
+// const gui = new dat.GUI();
 
-const options = {
-    cubeColor: '#ffea00',
-    speed: 0.01
-};
+// const options = {
+//     cubeColor: '#ffea00',
+//     speed: 0.01
+// };
 
-gui.addColor(options, 'cubeColor').onChange(function (e) {
-    boxMaterial.color.set(e);
-    sphereMaterial.color.set(e);
+// gui.addColor(options, 'cubeColor').onChange(function (e) {
+//     boxMaterial.color.set(e);
+//     sphereMaterial.color.set(e);
 
-});
+// });
 
-gui.add(options, 'speed', 0, 0.02);
+// gui.add(options, 'speed', 0, 0.02);
 
 let step = 0;
 
@@ -121,45 +138,9 @@ const rayCast = new THREE.Raycaster();
 const planeID = plane.id;
 
 function animate(time) {
-    // box.rotation.x = time / 1000;
-    // box.rotation.y = time / 1000;
-
-    // step += options.speed;
-    // sphere.position.y = 10 * Math.abs(Math.sin(step))
-
-    // if (plane.geometry.attributes.position.array[2] > 10) {
-    //     plane.geometry.attributes.position.array[2] = 0.01 * time;
-    // }
-    // plane.geometry.attributes.position.needsUpdate = true;
-
-    // rayCast.setFromCamera(mousePos, camera);
-    // const intersects = rayCast.intersectObjects(scene.children);
-    // // console.log(intersects);
-    // intersectIndex = intersects.length - 1;
-    // if (intersects.length != 0 && intersects[intersectIndex].object.id === planeID) {
-    //     for (let j = -9; j < 10; j++) {
-    //         setTimeout(() => {
-    //             // for (let i = -j + 1; i < j; i++) {
-    //             faceNum = planeSegments * planeSegments * 2;
-    //             faceIn = intersects[intersectIndex].faceIndex + 2;
-    //             vertIndex = (Math.floor((faceIn / 2) / planeSegments) * (planeSegments + 1) + (faceIn / 2) % planeSegments);
-    //             plane.geometry.attributes.position.array[(vertIndex + j * (planeSegments + 1)) * 3 - 1] = 1;
-    //             plane.geometry.attributes.position.array[(vertIndex + j) * 3 - 1] = 1;
-
-    //             plane.geometry.attributes.position.needsUpdate = true;
-    //             // }
-    //         }, 70);
-    //     }
-    // }
-    // for (let i = 0; i < plane.geometry.attributes.position.array.length / 3; i++) {
-    //     if (plane.geometry.attributes.position.array[i * 3 - 1] > 0) {
-    //         plane.geometry.attributes.position.array[i * 3 - 1] -= 0.01;
-    //         plane.geometry.attributes.position.needsUpdate = true;
-    //     }
-    // }
-
-    // console.log(intersects);
     renderer.render(scene, camera);
+    fly.update(0.001);
+    // requestAnimationFrame( animate );
 }
 
 /* L SYSTEM */
@@ -169,8 +150,11 @@ let currentDirection = new Vector3(0, 1, 0);
 let stack = [];
 
 //TEXTURING
+const textureLoader = new THREE.TextureLoader();
+// const barkTexture = textureLoader.load('https://ibb.co/YDFz5df')
 const barkMaterial = new THREE.MeshStandardMaterial({
     color: '#a5633c',
+    //map: barkTexture
 })
 
 const maxWidth = 0.1;
@@ -182,11 +166,15 @@ const rollAxis = new Vector3(0, 0, 1);
 const turnAxis = new Vector3(0, 1, 0);
 const angle = 10;
 
-drawFractal(3, new Vector3(0, 5, 0));
+drawTree(4, new Vector3(0, 0, 0));
+// drawTree(3, new Vector3(5, 0, 0))
 
-function drawFractal(n, startingPos) {
+function drawTree(n, startingPos) {
+    const treeGroup = new THREE.Group();
+    scene.add(treeGroup);
     let depth = 0;
-    currentPosition = startingPos;
+    currentPosition = new Vector3(0, 0, 0);
+
     const word = generateComplex(n);
     for (let i = 0; i < word.length; i++) {
         const currentSymbol = word[i];
@@ -194,7 +182,8 @@ function drawFractal(n, startingPos) {
         switch (currentSymbol) {
             case "F": //draw forward
             case "Y":
-                drawForward();
+                if(currentDirection.y > -0.2)
+                    drawForward(treeGroup);
                 break;
             case "+": //turn left
                 turn(-1);
@@ -239,9 +228,13 @@ function drawFractal(n, startingPos) {
                 break;
         }
     }
+    // const randomRotation = Math.random() * Math.PI * 2; 
+    // treeGroup.rotation.y = randomRotation;
+
+    // treeGroup.position.copy(startingPos);
 }
 
-function drawForward() {
+function drawForward(treeGroup) {
     let depth = 0;
     if(stack.length > 0) {
         depth = stack[stack.length - 1].depth;
@@ -262,10 +255,10 @@ function drawForward() {
     cyl.position.copy(currentPosition.clone().add(direction.multiplyScalar(0.5)));
     //set rotation
     cyl.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize());
-    if(depth > 1) { //only add leaves to upper branches
+    if(depth > 4) { //only add leaves to upper branches
         addLeaves(cyl, 3);
     }
-    scene.add(cyl);
+    treeGroup.add(cyl);
     currentPosition = newPos;
 }
 
@@ -295,7 +288,7 @@ function addLeaves(cylinder, numLeaves) {
     
     const leafGeometry = new THREE.ConeGeometry(leafSize, leafSize * 2, 8);
     const leafMaterial = new THREE.MeshStandardMaterial({ 
-        color: '#21913f', 
+        color: '#6ec007', 
     });
     const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
 
@@ -318,5 +311,3 @@ function addLeaves(cylinder, numLeaves) {
         cylinder.add(curLeaf);
     }
 }
-
-renderer.setAnimationLoop(animate);
