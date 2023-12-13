@@ -1,10 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import { Water } from 'three/examples/jsm/objects/Water.js';
 import * as dat from 'dat.gui';
 import { generateFractal } from './lsystem.js';
 import { PriorityQueue } from './priorityqueue.js';
-import { Water } from '../classes/Water.js';
+import { Water } from '../classes/myWater.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
 
 // use this to run "parcel src/index.html"
@@ -81,8 +80,7 @@ updateSun();
 
 /* GEOMETRY */
 //water
-const planeGeometry = new THREE.PlaneGeometry(30, 30, 50, 50);
-const planeSegments = 50;
+const planeGeometry = new THREE.PlaneGeometry(480, 480, 50, 50);
 
 const water = new Water(planeGeometry,
     {
@@ -106,11 +104,11 @@ water.receiveShadow = true;
 //terrain
 var terrain_width = 200;
 var terrain_height = 200;
-var geometry = new THREE.PlaneGeometry(500, 500, terrain_width-1, terrain_height-1 );
-var material = new THREE.MeshLambertMaterial({color: 0x3c3951});
-var terrain = new THREE.Mesh( geometry, material );
+var geometry = new THREE.PlaneGeometry(500, 500, terrain_width - 1, terrain_height - 1);
+var material = new THREE.MeshLambertMaterial({ color: 0x3c3951 });
+var terrain = new THREE.Mesh(geometry, material);
 terrain.rotation.x = -Math.PI / 2;
-scene.add( terrain );
+scene.add(terrain);
 
 
 /*var peak = 60;
@@ -136,9 +134,9 @@ var vertices = terrain.geometry.attributes.position.array;
 
 function makeArray(w, h, val) {
     var arr = [];
-    for(let i = 0; i < h; i++) {
+    for (let i = 0; i < h; i++) {
         arr[i] = [];
-        for(let j = 0; j < w; j++) {
+        for (let j = 0; j < w; j++) {
             arr[i][j] = val;
         }
     }
@@ -151,26 +149,26 @@ var origin_map = makeArray(terrain_width, terrain_height, []);
 var pairwiseQueue = new PriorityQueue((a, b) => a[1] < b[1]);
 
 for (var i = 0; i <= vertices.length; i += 3) {
-    
 
-    vertices[i+2] = Math.max(5, peak * Math.abs(perlin.noise(
-        (terrain.position.x + vertices[i])/smoothing, 
-        (terrain.position.z + vertices[i+1])/smoothing
-    ))+ peak1 * perlin.noise(
-        (terrain.position.x + vertices[i])/smoothing1, 
-        (terrain.position.z + vertices[i+1])/smoothing1
-    )+ peak2 * perlin.noise(
-        (terrain.position.x + vertices[i])/smoothing2, 
-        (terrain.position.z + vertices[i+1])/smoothing2
-    )+ peak3 * perlin.noise(
-        (terrain.position.x + vertices[i])/smoothing3, 
-        (terrain.position.z + vertices[i+1])/smoothing3
+
+    vertices[i + 2] = Math.max(5, peak * Math.abs(perlin.noise(
+        (terrain.position.x + vertices[i]) / smoothing,
+        (terrain.position.z + vertices[i + 1]) / smoothing
+    )) + peak1 * perlin.noise(
+        (terrain.position.x + vertices[i]) / smoothing1,
+        (terrain.position.z + vertices[i + 1]) / smoothing1
+    ) + peak2 * perlin.noise(
+        (terrain.position.x + vertices[i]) / smoothing2,
+        (terrain.position.z + vertices[i + 1]) / smoothing2
+    ) + peak3 * perlin.noise(
+        (terrain.position.x + vertices[i]) / smoothing3,
+        (terrain.position.z + vertices[i + 1]) / smoothing3
     ));
 
-    var vertex_num = i/3;
-    var y = Math.floor(vertex_num/terrain_width);
-    var x = (vertex_num%(terrain_width));
-    height_map[x][y] = vertices[i+2];
+    var vertex_num = i / 3;
+    var y = Math.floor(vertex_num / terrain_width);
+    var x = (vertex_num % (terrain_width));
+    height_map[x][y] = vertices[i + 2];
 
 }
 
@@ -178,95 +176,95 @@ var startPercentageX = 0.8
 var startPercentageY = 0.05
 var endPercentageX = 0.05
 var endPercentageY = 0.8
-var startX = Math.round((terrain_width-1) * startPercentageX);
-var startY = Math.round((terrain_height-1) * startPercentageY);
-var endX = Math.round((terrain_width-1) * endPercentageX);
-var endY = Math.round((terrain_height-1) * endPercentageY);
+var startX = Math.round((terrain_width - 1) * startPercentageX);
+var startY = Math.round((terrain_height - 1) * startPercentageY);
+var endX = Math.round((terrain_width - 1) * endPercentageX);
+var endY = Math.round((terrain_height - 1) * endPercentageY);
 cost_arr[startX][startY] = 0;
 var x = startX;
 var y = startY;
 var count = 0;
 //console.log(startX, startY);
 //console.log(endX, endY);
-while(true){
-    
+while (true) {
+
     count++;
-    
+
     //x+1 case
-    if(x+1 < terrain_width && visited[x+1][y] == 0){
-        if(cost_arr[x][y] + (height_map[x+1][y]-height_map[x][y]) < cost_arr[x+1][y]){
-            cost_arr[x+1][y] = cost_arr[x][y] + (height_map[x+1][y]-height_map[x][y]);
-            pairwiseQueue.push([[x+1,y], cost_arr[x+1][y]]);
-            origin_map[x+1][y] = [x,y];
+    if (x + 1 < terrain_width && visited[x + 1][y] == 0) {
+        if (cost_arr[x][y] + (height_map[x + 1][y] - height_map[x][y]) < cost_arr[x + 1][y]) {
+            cost_arr[x + 1][y] = cost_arr[x][y] + (height_map[x + 1][y] - height_map[x][y]);
+            pairwiseQueue.push([[x + 1, y], cost_arr[x + 1][y]]);
+            origin_map[x + 1][y] = [x, y];
         }
     }
     //x-1 case
-    if(x-1 >= 0 && visited[x-1][y] == 0){
-        if(cost_arr[x][y] + (height_map[x-1][y]-height_map[x][y]) < cost_arr[x-1][y]){
-            cost_arr[x-1][y] = cost_arr[x][y] + (height_map[x-1][y]-height_map[x][y]);
-            pairwiseQueue.push([[x-1,y], cost_arr[x-1][y]]);
-            origin_map[x-1][y] = [x,y];
+    if (x - 1 >= 0 && visited[x - 1][y] == 0) {
+        if (cost_arr[x][y] + (height_map[x - 1][y] - height_map[x][y]) < cost_arr[x - 1][y]) {
+            cost_arr[x - 1][y] = cost_arr[x][y] + (height_map[x - 1][y] - height_map[x][y]);
+            pairwiseQueue.push([[x - 1, y], cost_arr[x - 1][y]]);
+            origin_map[x - 1][y] = [x, y];
         }
     }
     //y+1 case
-    if(y+1 < terrain_height && visited[x][y+1] == 0){
-        if(cost_arr[x][y] + (height_map[x][y+1]-height_map[x][y]) < cost_arr[x][y+1]){
-            cost_arr[x][y+1] = cost_arr[x][y] + (height_map[x][y+1]-height_map[x][y]);
-            pairwiseQueue.push([[x,y+1], cost_arr[x][y+1]]);
-            origin_map[x][y+1] = [x,y];
+    if (y + 1 < terrain_height && visited[x][y + 1] == 0) {
+        if (cost_arr[x][y] + (height_map[x][y + 1] - height_map[x][y]) < cost_arr[x][y + 1]) {
+            cost_arr[x][y + 1] = cost_arr[x][y] + (height_map[x][y + 1] - height_map[x][y]);
+            pairwiseQueue.push([[x, y + 1], cost_arr[x][y + 1]]);
+            origin_map[x][y + 1] = [x, y];
         }
     }
     //y-1 case
-    if(y-1 >= 0 && visited[x][y-1] == 0){
-        if(cost_arr[x][y] + (height_map[x][y-1]-height_map[x][y]) < cost_arr[x][y-1]){
-            cost_arr[x][y-1] = cost_arr[x][y] + (height_map[x][y-1]-height_map[x][y]);
-            pairwiseQueue.push([[x,y-1], cost_arr[x][y-1]]);
-            origin_map[x][y-1] = [x,y];
+    if (y - 1 >= 0 && visited[x][y - 1] == 0) {
+        if (cost_arr[x][y] + (height_map[x][y - 1] - height_map[x][y]) < cost_arr[x][y - 1]) {
+            cost_arr[x][y - 1] = cost_arr[x][y] + (height_map[x][y - 1] - height_map[x][y]);
+            pairwiseQueue.push([[x, y - 1], cost_arr[x][y - 1]]);
+            origin_map[x][y - 1] = [x, y];
         }
     }
     visited[x][y] = 1;
     //pairwiseQueue.push([0,0]);
     //console.log(x,y);
-    
+
     if (!pairwiseQueue.isEmpty()) {
         var result = pairwiseQueue.pop();
         //console.log(result);
         x = result[0][0];
         y = result[0][1];
-        
+
     }
-    
-    
+
+
     //console.log(result);
-    if(x == endX && y == endY){
+    if (x == endX && y == endY) {
         break;
     }
 }
 //backtrack to create river
 var backtrack_x = endX;
 var backtrack_y = endY;
-while(true){
+while (true) {
     //console.log(backtrack_x, backtrack_y);
     var origin = origin_map[backtrack_x][backtrack_y];
     //console.log(origin);
-    
-    
+
+
     backtrack_x = origin[0];
     backtrack_y = origin[1];
-    for(let i = -3; i<3; i++){
-        for(let j = -3; j<3; j++){
-            var vertex_index = ((backtrack_y+i)*terrain_width+(backtrack_x+j))*3;
-            vertices[vertex_index+2] = -20;
+    for (let i = -3; i < 3; i++) {
+        for (let j = -3; j < 3; j++) {
+            var vertex_index = ((backtrack_y + i) * terrain_width + (backtrack_x + j)) * 3;
+            vertices[vertex_index + 2] = -20;
         }
-        
-        
+
+
     }
-    if(backtrack_x == startX && backtrack_y == startY){
+    if (backtrack_x == startX && backtrack_y == startY) {
         //vertices[vertex_index+2] = 200;
         break;
     }
-    
-    
+
+
 
 }
 //vertices[(40*20+20)*3+2] = 200;
@@ -311,9 +309,8 @@ gui.add(options, 'speed', 0, 0.02);
 let step = 0;
 function animate() {
     step += options.speed;
-    //waterUniformList.forEach((x) => x['time'].value += 1.0 / 90.0);
     water.material.uniforms['time'].value += 1.0 / 60.0;
-    
+
     renderer.render(scene, camera);
 }
 

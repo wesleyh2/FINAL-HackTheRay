@@ -114,7 +114,7 @@ updateSun();
 
 function animate(time) {
 
-    waterUniformList.forEach((x) => x['time'].value += 1.0 / 90.0);
+    water.material.uniforms['time'].value += 1.0 / 90.0);
 
 
     renderer.render(scene, camera);
