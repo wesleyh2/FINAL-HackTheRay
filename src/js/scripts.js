@@ -153,8 +153,8 @@ const barkMaterial = new THREE.MeshStandardMaterial({
     color: '#a5633c',
 })
 
-const maxWidth = 0.1;
-const minWidth = 0.01;
+const maxWidth = 1;
+const minWidth = 0.1;
 const decayFactor = 0.8;
 //turning
 const pitchAxis = new Vector3(1, 0, 0);
@@ -168,8 +168,7 @@ function randomIntFromInterval(min, max) {
 const words = [generateComplex(2), generateComplex(3), generateComplex(4)];
 
 drawTree(new Vector3(0, 0, 0));
-drawTree(new Vector3(5, 0, 0));
-drawTree(new Vector3(10, 0, 0));
+drawTree(new Vector3(50, 0, 0));
 
 function drawTree(startingPos) {
     const treeGroup = new THREE.Group();
@@ -243,8 +242,7 @@ function drawForward(treeGroup) {
     else {
         depth = 0;
     }
-    const newPos = currentPosition.clone().add(currentDirection);
-    //const newPos = currentPosition.clone().add(currentDirection.clone().multiplyScalar(2)); //bigger adjustment
+    const newPos = currentPosition.clone().add(currentDirection.clone().multiplyScalar(10)); //bigger adjustment
     const direction = new Vector3().subVectors(newPos, currentPosition);
     const distance = direction.length()
 
@@ -285,8 +283,8 @@ function turnAround() {
 }
 
 function addLeaves(cylinder, numLeaves) {
-    const leafSize = 0.1; 
-    const increment = 1 / numLeaves;
+    const leafSize = 1; 
+    const increment = 9 / numLeaves;
     
     const leafGeometry = new THREE.ConeGeometry(leafSize, leafSize * 2, 8);
     const leafMaterial = new THREE.MeshStandardMaterial({ 
