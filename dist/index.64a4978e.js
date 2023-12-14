@@ -580,19 +580,39 @@ var _orbitControlsJs = require("three/examples/jsm/controls/OrbitControls.js");
 var _waterJs = require("three/examples/jsm/objects/Water.js");
 var _datGui = require("dat.gui");
 var _lsystemJs = require("./lsystem.js");
+var _flyControls = require("three/examples/jsm/controls/FlyControls");
 // use this to run "parcel src/index.html"
 const { Vector3, Geometry, Line, LineBasicMaterial } = _three;
+//SET UP SCENE
 const renderer = new _three.WebGLRenderer;
 renderer.shadowMap.enabled = true;
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 const scene = new _three.Scene();
 const camera = new _three.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+const initialLook = new Vector3(0, 2.5, 0);
+camera.position.set(0, 4, 9);
+camera.lookAt(initialLook);
+//Set up OrbitControls
 const orbit = new (0, _orbitControlsJs.OrbitControls)(camera, renderer.domElement);
-const axesHelper = new _three.AxesHelper(5);
-scene.add(axesHelper);
-camera.position.set(-10, 30, 30);
+orbit.target.copy(initialLook);
 orbit.update();
+//Set up FlyControls
+fly = new (0, _flyControls.FlyControls)(camera, renderer.domElement);
+fly.movementSpeed = 100;
+fly.autoForward = false;
+fly.dragToLook = true;
+let isOrbitControlsActive = true;
+// Toggle flying and orbiting
+document.addEventListener("keydown", (event)=>{
+    if (event.key === "c") {
+        isOrbitControlsActive = !isOrbitControlsActive;
+        // Enable or disable controls based on the mode
+        orbit.enabled = isOrbitControlsActive;
+        fly.enabled = !isOrbitControlsActive;
+    }
+});
+renderer.setAnimationLoop(animate);
 /* GEOMETRY */ // const boxGeometry = new THREE.BoxGeometry();
 // const boxMaterial = new THREE.MeshStandardMaterial({ color: 0x00FF00 });
 // const box = new THREE.Mesh(boxGeometry, boxMaterial);
@@ -609,15 +629,15 @@ const plane = new _three.Mesh(planeGeometry, planeMaterial);
 scene.add(plane);
 plane.rotation.x = -0.5 * Math.PI;
 plane.receiveShadow = true;
-const sphereGeometry = new _three.SphereGeometry(4, 50, 50);
-const sphereMaterial = new _three.MeshStandardMaterial({
-    color: 0x0000FF,
-    wireframe: false
-});
-const sphere = new _three.Mesh(sphereGeometry, sphereMaterial);
-scene.add(sphere);
-sphere.castShadow = true;
-sphere.position.set(-10, 10, 0);
+// const sphereGeometry = new THREE.SphereGeometry(4, 50, 50);
+// const sphereMaterial = new THREE.MeshStandardMaterial({
+//     color: 0x0000FF,
+//     wireframe: false
+// });
+// const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+// scene.add(sphere);
+// sphere.castShadow = true;
+// sphere.position.set(-10, 10, 0);
 /* LIGHTING */ const ambientLight = new _three.AmbientLight(0x333333);
 scene.add(ambientLight);
 const directionalLight = new _three.DirectionalLight(0xFFFFFF, 0.8);
@@ -636,16 +656,16 @@ directionalLight.shadow.camera.bottom = -12;
 // spotLight.angle = 0.3;
 // const sLightHelper = new THREE.SpotLightHelper(spotLight);
 // scene.add(sLightHelper);
-/* GUI */ const gui = new _datGui.GUI();
-const options = {
-    cubeColor: "#ffea00",
-    speed: 0.01
-};
-gui.addColor(options, "cubeColor").onChange(function(e) {
-    boxMaterial.color.set(e);
-    sphereMaterial.color.set(e);
-});
-gui.add(options, "speed", 0, 0.02);
+/* GUI */ // const gui = new dat.GUI();
+// const options = {
+//     cubeColor: '#ffea00',
+//     speed: 0.01
+// };
+// gui.addColor(options, 'cubeColor').onChange(function (e) {
+//     boxMaterial.color.set(e);
+//     sphereMaterial.color.set(e);
+// });
+// gui.add(options, 'speed', 0, 0.02);
 let step = 0;
 const mousePos = new _three.Vector2();
 window.addEventListener("mousemove", function(e) {
@@ -655,46 +675,17 @@ window.addEventListener("mousemove", function(e) {
 const rayCast = new _three.Raycaster();
 const planeID = plane.id;
 function animate(time) {
-    // box.rotation.x = time / 1000;
-    // box.rotation.y = time / 1000;
-    // step += options.speed;
-    // sphere.position.y = 10 * Math.abs(Math.sin(step))
-    // if (plane.geometry.attributes.position.array[2] > 10) {
-    //     plane.geometry.attributes.position.array[2] = 0.01 * time;
-    // }
-    // plane.geometry.attributes.position.needsUpdate = true;
-    // rayCast.setFromCamera(mousePos, camera);
-    // const intersects = rayCast.intersectObjects(scene.children);
-    // // console.log(intersects);
-    // intersectIndex = intersects.length - 1;
-    // if (intersects.length != 0 && intersects[intersectIndex].object.id === planeID) {
-    //     for (let j = -9; j < 10; j++) {
-    //         setTimeout(() => {
-    //             // for (let i = -j + 1; i < j; i++) {
-    //             faceNum = planeSegments * planeSegments * 2;
-    //             faceIn = intersects[intersectIndex].faceIndex + 2;
-    //             vertIndex = (Math.floor((faceIn / 2) / planeSegments) * (planeSegments + 1) + (faceIn / 2) % planeSegments);
-    //             plane.geometry.attributes.position.array[(vertIndex + j * (planeSegments + 1)) * 3 - 1] = 1;
-    //             plane.geometry.attributes.position.array[(vertIndex + j) * 3 - 1] = 1;
-    //             plane.geometry.attributes.position.needsUpdate = true;
-    //             // }
-    //         }, 70);
-    //     }
-    // }
-    // for (let i = 0; i < plane.geometry.attributes.position.array.length / 3; i++) {
-    //     if (plane.geometry.attributes.position.array[i * 3 - 1] > 0) {
-    //         plane.geometry.attributes.position.array[i * 3 - 1] -= 0.01;
-    //         plane.geometry.attributes.position.needsUpdate = true;
-    //     }
-    // }
-    // console.log(intersects);
     renderer.render(scene, camera);
+    fly.update(0.001);
+// requestAnimationFrame( animate );
 }
 /* L SYSTEM */ //initializations for L-system
 let currentPosition;
 let currentDirection = new Vector3(0, 1, 0);
 let stack = [];
 //TEXTURING
+const textureLoader = new _three.TextureLoader();
+// const barkTexture = textureLoader.load('https://ibb.co/YDFz5df')
 const barkMaterial = new _three.MeshStandardMaterial({
     color: "#a5633c"
 });
@@ -706,17 +697,20 @@ const pitchAxis = new Vector3(1, 0, 0);
 const rollAxis = new Vector3(0, 0, 1);
 const turnAxis = new Vector3(0, 1, 0);
 const angle = 10;
-drawFractal(3, new Vector3(0, 5, 0));
-function drawFractal(n, startingPos) {
+drawTree(4, new Vector3(0, 0, 0));
+// drawTree(3, new Vector3(5, 0, 0))
+function drawTree(n, startingPos) {
+    const treeGroup = new _three.Group();
+    scene.add(treeGroup);
     let depth = 0;
-    currentPosition = startingPos;
+    currentPosition = new Vector3(0, 0, 0);
     const word = (0, _lsystemJs.generateComplex)(n);
     for(let i = 0; i < word.length; i++){
         const currentSymbol = word[i];
         switch(currentSymbol){
             case "F":
             case "Y":
-                drawForward();
+                if (currentDirection.y > -0.2) drawForward(treeGroup);
                 break;
             case "+":
                 turn(-1);
@@ -761,8 +755,11 @@ function drawFractal(n, startingPos) {
                 break;
         }
     }
+// const randomRotation = Math.random() * Math.PI * 2; 
+// treeGroup.rotation.y = randomRotation;
+// treeGroup.position.copy(startingPos);
 }
-function drawForward() {
+function drawForward(treeGroup) {
     let depth = 0;
     if (stack.length > 0) depth = stack[stack.length - 1].depth;
     else depth = 0;
@@ -777,8 +774,8 @@ function drawForward() {
     cyl.position.copy(currentPosition.clone().add(direction.multiplyScalar(0.5)));
     //set rotation
     cyl.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize());
-    if (depth > 1) addLeaves(cyl, 3);
-    scene.add(cyl);
+    if (depth > 4) addLeaves(cyl, 3);
+    treeGroup.add(cyl);
     currentPosition = newPos;
 }
 function turn(direction) {
@@ -802,7 +799,7 @@ function addLeaves(cylinder, numLeaves) {
     const increment = 1 / numLeaves;
     const leafGeometry = new _three.ConeGeometry(leafSize, leafSize * 2, 8);
     const leafMaterial = new _three.MeshStandardMaterial({
-        color: "#21913f"
+        color: "#6ec007"
     });
     const leaf = new _three.Mesh(leafGeometry, leafMaterial);
     // Position the leaf on the cylinder
@@ -822,9 +819,8 @@ function addLeaves(cylinder, numLeaves) {
         cylinder.add(curLeaf);
     }
 }
-renderer.setAnimationLoop(animate);
 
-},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/objects/Water.js":"7Js2l","dat.gui":"k3xQk","./lsystem.js":"jaj2L"}],"ktPTu":[function(require,module,exports) {
+},{"three":"ktPTu","three/examples/jsm/controls/OrbitControls.js":"7mqRv","three/examples/jsm/objects/Water.js":"7Js2l","dat.gui":"k3xQk","./lsystem.js":"jaj2L","three/examples/jsm/controls/FlyControls":"8gpH9"}],"ktPTu":[function(require,module,exports) {
 /**
  * @license
  * Copyright 2010-2023 Three.js Authors
@@ -35055,6 +35051,282 @@ function generateComplex(iterations) {
     return oldWord;
 }
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["ciGIJ","goJYj"], "goJYj", "parcelRequire94c2")
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"8gpH9":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+parcelHelpers.export(exports, "FlyControls", ()=>FlyControls);
+var _three = require("three");
+const _changeEvent = {
+    type: "change"
+};
+class FlyControls extends (0, _three.EventDispatcher) {
+    constructor(object, domElement){
+        super();
+        this.object = object;
+        this.domElement = domElement;
+        // API
+        // Set to false to disable this control
+        this.enabled = true;
+        this.movementSpeed = 1.0;
+        this.rollSpeed = 0.005;
+        this.dragToLook = false;
+        this.autoForward = false;
+        // disable default target object behavior
+        // internals
+        const scope = this;
+        const EPS = 0.000001;
+        const lastQuaternion = new (0, _three.Quaternion)();
+        const lastPosition = new (0, _three.Vector3)();
+        this.tmpQuaternion = new (0, _three.Quaternion)();
+        this.status = 0;
+        this.moveState = {
+            up: 0,
+            down: 0,
+            left: 0,
+            right: 0,
+            forward: 0,
+            back: 0,
+            pitchUp: 0,
+            pitchDown: 0,
+            yawLeft: 0,
+            yawRight: 0,
+            rollLeft: 0,
+            rollRight: 0
+        };
+        this.moveVector = new (0, _three.Vector3)(0, 0, 0);
+        this.rotationVector = new (0, _three.Vector3)(0, 0, 0);
+        this.keydown = function(event) {
+            if (event.altKey || this.enabled === false) return;
+            switch(event.code){
+                case "ShiftLeft":
+                case "ShiftRight":
+                    this.movementSpeedMultiplier = .1;
+                    break;
+                case "KeyW":
+                    this.moveState.forward = 1;
+                    break;
+                case "KeyS":
+                    this.moveState.back = 1;
+                    break;
+                case "KeyA":
+                    this.moveState.left = 1;
+                    break;
+                case "KeyD":
+                    this.moveState.right = 1;
+                    break;
+                case "KeyR":
+                    this.moveState.up = 1;
+                    break;
+                case "KeyF":
+                    this.moveState.down = 1;
+                    break;
+                case "ArrowUp":
+                    this.moveState.pitchUp = 1;
+                    break;
+                case "ArrowDown":
+                    this.moveState.pitchDown = 1;
+                    break;
+                case "ArrowLeft":
+                    this.moveState.yawLeft = 1;
+                    break;
+                case "ArrowRight":
+                    this.moveState.yawRight = 1;
+                    break;
+                case "KeyQ":
+                    this.moveState.rollLeft = 1;
+                    break;
+                case "KeyE":
+                    this.moveState.rollRight = 1;
+                    break;
+            }
+            this.updateMovementVector();
+            this.updateRotationVector();
+        };
+        this.keyup = function(event) {
+            if (this.enabled === false) return;
+            switch(event.code){
+                case "ShiftLeft":
+                case "ShiftRight":
+                    this.movementSpeedMultiplier = 1;
+                    break;
+                case "KeyW":
+                    this.moveState.forward = 0;
+                    break;
+                case "KeyS":
+                    this.moveState.back = 0;
+                    break;
+                case "KeyA":
+                    this.moveState.left = 0;
+                    break;
+                case "KeyD":
+                    this.moveState.right = 0;
+                    break;
+                case "KeyR":
+                    this.moveState.up = 0;
+                    break;
+                case "KeyF":
+                    this.moveState.down = 0;
+                    break;
+                case "ArrowUp":
+                    this.moveState.pitchUp = 0;
+                    break;
+                case "ArrowDown":
+                    this.moveState.pitchDown = 0;
+                    break;
+                case "ArrowLeft":
+                    this.moveState.yawLeft = 0;
+                    break;
+                case "ArrowRight":
+                    this.moveState.yawRight = 0;
+                    break;
+                case "KeyQ":
+                    this.moveState.rollLeft = 0;
+                    break;
+                case "KeyE":
+                    this.moveState.rollRight = 0;
+                    break;
+            }
+            this.updateMovementVector();
+            this.updateRotationVector();
+        };
+        this.pointerdown = function(event) {
+            if (this.enabled === false) return;
+            if (this.dragToLook) this.status++;
+            else {
+                switch(event.button){
+                    case 0:
+                        this.moveState.forward = 1;
+                        break;
+                    case 2:
+                        this.moveState.back = 1;
+                        break;
+                }
+                this.updateMovementVector();
+            }
+        };
+        this.pointermove = function(event) {
+            if (this.enabled === false) return;
+            if (!this.dragToLook || this.status > 0) {
+                const container = this.getContainerDimensions();
+                const halfWidth = container.size[0] / 2;
+                const halfHeight = container.size[1] / 2;
+                this.moveState.yawLeft = -(event.pageX - container.offset[0] - halfWidth) / halfWidth;
+                this.moveState.pitchDown = (event.pageY - container.offset[1] - halfHeight) / halfHeight;
+                this.updateRotationVector();
+            }
+        };
+        this.pointerup = function(event) {
+            if (this.enabled === false) return;
+            if (this.dragToLook) {
+                this.status--;
+                this.moveState.yawLeft = this.moveState.pitchDown = 0;
+            } else {
+                switch(event.button){
+                    case 0:
+                        this.moveState.forward = 0;
+                        break;
+                    case 2:
+                        this.moveState.back = 0;
+                        break;
+                }
+                this.updateMovementVector();
+            }
+            this.updateRotationVector();
+        };
+        this.pointercancel = function() {
+            if (this.enabled === false) return;
+            if (this.dragToLook) {
+                this.status = 0;
+                this.moveState.yawLeft = this.moveState.pitchDown = 0;
+            } else {
+                this.moveState.forward = 0;
+                this.moveState.back = 0;
+                this.updateMovementVector();
+            }
+            this.updateRotationVector();
+        };
+        this.contextMenu = function(event) {
+            if (this.enabled === false) return;
+            event.preventDefault();
+        };
+        this.update = function(delta) {
+            if (this.enabled === false) return;
+            const moveMult = delta * scope.movementSpeed;
+            const rotMult = delta * scope.rollSpeed;
+            scope.object.translateX(scope.moveVector.x * moveMult);
+            scope.object.translateY(scope.moveVector.y * moveMult);
+            scope.object.translateZ(scope.moveVector.z * moveMult);
+            scope.tmpQuaternion.set(scope.rotationVector.x * rotMult, scope.rotationVector.y * rotMult, scope.rotationVector.z * rotMult, 1).normalize();
+            scope.object.quaternion.multiply(scope.tmpQuaternion);
+            if (lastPosition.distanceToSquared(scope.object.position) > EPS || 8 * (1 - lastQuaternion.dot(scope.object.quaternion)) > EPS) {
+                scope.dispatchEvent(_changeEvent);
+                lastQuaternion.copy(scope.object.quaternion);
+                lastPosition.copy(scope.object.position);
+            }
+        };
+        this.updateMovementVector = function() {
+            const forward = this.moveState.forward || this.autoForward && !this.moveState.back ? 1 : 0;
+            this.moveVector.x = -this.moveState.left + this.moveState.right;
+            this.moveVector.y = -this.moveState.down + this.moveState.up;
+            this.moveVector.z = -forward + this.moveState.back;
+        //console.log( 'move:', [ this.moveVector.x, this.moveVector.y, this.moveVector.z ] );
+        };
+        this.updateRotationVector = function() {
+            this.rotationVector.x = -this.moveState.pitchDown + this.moveState.pitchUp;
+            this.rotationVector.y = -this.moveState.yawRight + this.moveState.yawLeft;
+            this.rotationVector.z = -this.moveState.rollRight + this.moveState.rollLeft;
+        //console.log( 'rotate:', [ this.rotationVector.x, this.rotationVector.y, this.rotationVector.z ] );
+        };
+        this.getContainerDimensions = function() {
+            if (this.domElement != document) return {
+                size: [
+                    this.domElement.offsetWidth,
+                    this.domElement.offsetHeight
+                ],
+                offset: [
+                    this.domElement.offsetLeft,
+                    this.domElement.offsetTop
+                ]
+            };
+            else return {
+                size: [
+                    window.innerWidth,
+                    window.innerHeight
+                ],
+                offset: [
+                    0,
+                    0
+                ]
+            };
+        };
+        this.dispose = function() {
+            this.domElement.removeEventListener("contextmenu", _contextmenu);
+            this.domElement.removeEventListener("pointerdown", _pointerdown);
+            this.domElement.removeEventListener("pointermove", _pointermove);
+            this.domElement.removeEventListener("pointerup", _pointerup);
+            this.domElement.removeEventListener("pointercancel", _pointercancel);
+            window.removeEventListener("keydown", _keydown);
+            window.removeEventListener("keyup", _keyup);
+        };
+        const _contextmenu = this.contextMenu.bind(this);
+        const _pointermove = this.pointermove.bind(this);
+        const _pointerdown = this.pointerdown.bind(this);
+        const _pointerup = this.pointerup.bind(this);
+        const _pointercancel = this.pointercancel.bind(this);
+        const _keydown = this.keydown.bind(this);
+        const _keyup = this.keyup.bind(this);
+        this.domElement.addEventListener("contextmenu", _contextmenu);
+        this.domElement.addEventListener("pointerdown", _pointerdown);
+        this.domElement.addEventListener("pointermove", _pointermove);
+        this.domElement.addEventListener("pointerup", _pointerup);
+        this.domElement.addEventListener("pointercancel", _pointercancel);
+        window.addEventListener("keydown", _keydown);
+        window.addEventListener("keyup", _keyup);
+        this.updateMovementVector();
+        this.updateRotationVector();
+    }
+}
+
+},{"three":"ktPTu","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["ciGIJ","goJYj"], "goJYj", "parcelRequire94c2")
 
 //# sourceMappingURL=index.64a4978e.js.map

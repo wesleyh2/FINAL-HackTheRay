@@ -5,8 +5,10 @@ import { generateFractal } from './lsystem.js';
 import { PriorityQueue } from './priorityqueue.js';
 import { Water } from '../classes/myWater.js';
 import { Sky } from 'three/examples/jsm/objects/Sky.js';
+import { generateFractal, generateComplex } from './lsystem.js';
 
 // use this to run "parcel src/index.html"
+
 
 const { Vector3, Geometry, Line, LineBasicMaterial } = THREE;
 
@@ -35,6 +37,177 @@ scene.add(axesHelper);
 camera.position.set(-10, 30, 30);
 orbit.update();
 const Perlin = require('./perlin.js').Perlin;
+
+/* L SYSTEM */
+//initializations for L-system
+let currentPosition;
+let currentDirection = new Vector3(0, 1, 0);
+let stack = [];
+
+const barkMaterial = new THREE.MeshStandardMaterial({
+    color: '#a5633c',
+})
+
+const maxWidth = 1;
+const minWidth = 0.1;
+const decayFactor = 0.8;
+//turning
+const pitchAxis = new Vector3(1, 0, 0);
+const rollAxis = new Vector3(0, 0, 1);
+const turnAxis = new Vector3(0, 1, 0);
+const angle = 10;
+
+function randomIntFromInterval(min, max) { 
+    return Math.floor(Math.random() * (max - min + 1) + min)
+}
+const words = [generateComplex(2), generateComplex(3), generateComplex(4)];
+
+//drawTree(new Vector3(0, 50, 0));
+//drawTree(new Vector3(50, 100, 0));
+
+function drawTree(startingPos) {
+    const treeGroup = new THREE.Group();
+    scene.add(treeGroup);
+    let depth = 0;
+    currentPosition = new Vector3(0, 0, 0);
+    const word = words[randomIntFromInterval(0, 2)];
+    for (let i = 0; i < word.length; i++) {
+        const currentSymbol = word[i];
+
+        switch (currentSymbol) {
+            case "F": //draw forward
+            case "Y":
+                if(currentDirection.y > -0.2)
+                    drawForward(treeGroup);
+                break;
+            case "+": //turn left
+                turn(-1);
+                break;
+            case "-": //turn right
+                turn(1);
+                break;
+            case "&": //pitch down
+                pitch(1);
+                break;
+            case "^": //pitch up
+                pitch(-1);
+                break;
+            case "\\": //roll left
+                roll(1);
+                break;
+            case "/": //roll right
+                roll(-1);
+                break;
+            case "|": //turn around
+                turnAround(currentDirection);
+                break;
+            case "[":
+                //save current position and direction to stack
+                depth += 1;
+                stack.push({ 
+                    position: currentPosition.clone(), 
+                    direction: currentDirection.clone(),
+                    depth: depth
+                });
+                break;
+            case "]":
+                //pop from the stack and reset position and direction
+                const data = stack.pop();
+                if (data) {
+                    currentPosition.copy(data.position);
+                    currentDirection.copy(data.direction);
+                    depth = data.depth;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    const randomRotation = Math.random() * Math.PI * 2; 
+    treeGroup.rotation.y = randomRotation;
+
+    treeGroup.position.copy(startingPos);
+}
+
+function drawForward(treeGroup) {
+    let depth = 0;
+    if(stack.length > 0) {
+        depth = stack[stack.length - 1].depth;
+    }
+    else {
+        depth = 0;
+    }
+    const newPos = currentPosition.clone().add(currentDirection.clone().multiplyScalar(10)); //bigger adjustment
+    const direction = new Vector3().subVectors(newPos, currentPosition);
+    const distance = direction.length()
+
+    //generate cylinder
+    const thickness = Math.max(minWidth, maxWidth * Math.pow(decayFactor, depth));
+    const cylGeometry = new THREE.CylinderGeometry(thickness, thickness, distance, 16);
+    const cyl = new THREE.Mesh(cylGeometry, barkMaterial);
+    
+    //center cylinder at halfway point
+    cyl.position.copy(currentPosition.clone().add(direction.multiplyScalar(0.5)));
+    //set rotation
+    cyl.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), direction.clone().normalize());
+    if(depth > 4) { //only add leaves to upper branches
+        addLeaves(cyl, 3);
+    }
+    treeGroup.add(cyl);
+    currentPosition = newPos;
+}
+
+function turn(direction) {
+    currentDirection.applyAxisAngle(turnAxis, (direction * angle) * Math.PI / 180);
+    currentDirection.normalize();
+}
+
+function pitch(direction) {
+    currentDirection.applyAxisAngle(pitchAxis, (direction * angle) * Math.PI / 180);
+    currentDirection.normalize();
+}
+
+function roll(direction) {
+    currentDirection.applyAxisAngle(rollAxis, (direction * angle) * Math.PI / 180);
+    currentDirection.normalize();
+}
+
+function turnAround() {
+    currentDirection.applyAxisAngle(turnAxis, Math.PI);
+    currentDirection.normalize();
+}
+
+function addLeaves(cylinder, numLeaves) {
+    const leafSize = 1; 
+    const increment = 9 / numLeaves;
+    
+    const leafGeometry = new THREE.ConeGeometry(leafSize, leafSize * 2, 8);
+    const leafMaterial = new THREE.MeshStandardMaterial({ 
+        color: '#6ec007', 
+    });
+    const leaf = new THREE.Mesh(leafGeometry, leafMaterial);
+
+    // Position the leaf on the cylinder
+    const x = cylinder.geometry.parameters.radiusTop;
+    leaf.position.set(x, 0, 0);
+    
+    // Orient the leaf
+    const leafNormal = new THREE.Vector3(x, 0, 0).normalize();
+    const leafQuaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), leafNormal);
+    leaf.setRotationFromQuaternion(leafQuaternion);
+    const directionVector = new THREE.Vector3(0, 1, 0);
+    const leafDirection = directionVector.applyQuaternion(leafQuaternion);
+
+    // Iterate through rest of leaves
+    cylinder.add(leaf);
+    for (let i = 1; i < numLeaves; i++) {
+        const curLeaf = new THREE.Mesh(leafGeometry, leafMaterial);
+        curLeaf.position.addScaledVector(leafDirection, i * increment);
+        cylinder.add(curLeaf);
+    }
+}
+//after l system
+
 // // skybox
 
 const sky = new Sky();
@@ -171,6 +344,10 @@ for (var i = 0; i <= vertices.length; i += 3) {
         (terrain.position.z + vertices[i + 1]) / smoothing3
     ));
 
+
+    
+    
+
     var vertex_num = i / 3;
     var y = Math.floor(vertex_num / terrain_width);
     var x = (vertex_num % (terrain_width));
@@ -277,7 +454,17 @@ while (true) {
 //console.log(vertices.length);
 
 
-
+for (let i = 0; i<vertices.length; i+= 3){
+    if(vertices[i+2] > 20){
+        //console.log("drawing a tree");
+        //console.log(vertices[i], vertices[i+1]);
+        if(Math.random() > 0.999){
+             
+            drawTree(new Vector3(vertices[i], vertices[i+2], -vertices[i+1]));
+        }
+        
+    }
+}
 
 
 terrain.geometry.attributes.position.needsUpdate = true;
@@ -309,6 +496,7 @@ gui.addColor(options, 'cubeColor').onChange(function (e) {
     sphereMaterial.color.set(e);
 
 });
+//drawTree(new Vector3(0, 0, 0));
 
 gui.add(options, 'speed', 0, 0.02);
 
@@ -322,3 +510,4 @@ function animate() {
 
 
 renderer.setAnimationLoop(animate);
+
