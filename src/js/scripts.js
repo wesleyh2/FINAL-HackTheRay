@@ -168,6 +168,8 @@ function randomIntFromInterval(min, max) {
 const words = [generateComplex(2), generateComplex(3), generateComplex(4)];
 
 drawTree(new Vector3(0, 0, 0));
+drawTree(new Vector3(5, 0, 0));
+drawTree(new Vector3(10, 0, 0));
 
 function drawTree(startingPos) {
     const treeGroup = new THREE.Group();
@@ -242,6 +244,7 @@ function drawForward(treeGroup) {
         depth = 0;
     }
     const newPos = currentPosition.clone().add(currentDirection);
+    //const newPos = currentPosition.clone().add(currentDirection.clone().multiplyScalar(2)); //bigger adjustment
     const direction = new Vector3().subVectors(newPos, currentPosition);
     const distance = direction.length()
 
